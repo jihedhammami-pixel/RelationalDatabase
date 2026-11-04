@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>From Chen ERD to the Relational Model</title>
+<style>
+:root{--bg:#F3F7FA;--card:#fff;--ink:#3B4A5A;--mut:#5B7C99;--blue:#A9CBE0;--sage:#B9D4B8;--rose:#F2C6C2;--butter:#F7E2A8;--lav:#D6CCEA;--pi:#2A3642;--line:#D6E2EA;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1F2833;--card:#2B3744;--ink:#E8EEF3;--mut:#A9BFD0;--line:#3B4A5A}}
+:root[data-theme="dark"]{--bg:#1F2833;--card:#2B3744;--ink:#E8EEF3;--mut:#A9BFD0;--line:#3B4A5A}
+html{scroll-behavior:smooth;scroll-padding-top:calc(60px + env(safe-area-inset-top,0px))}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Calibri,"Segoe UI",Arial,sans-serif}
+h1,h2,h3{font-family:Cambria,Georgia,serif;margin:0 0 .4em;line-height:1.15}
+h2{font-size:clamp(26px,4vw,38px)}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;padding:10px;background:var(--bg);box-shadow:0 2px 12px #0001}
+nav a{color:var(--ink);text-decoration:none;padding:6px 14px;border-radius:20px;font-weight:600;font-size:14px}
+nav a:hover{background:var(--blue);color:var(--pi)}
+section{max-width:1040px;margin:0 auto;padding:56px 18px}
+.sub{color:var(--mut);max-width:680px}
+.card{background:var(--card);border-radius:16px;padding:18px;box-shadow:0 8px 22px #3b4a5a22}
+.rv{opacity:0;transform:translateY(24px);transition:.7s}.rv.in{opacity:1;transform:none}
+/* hero 3D */
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:20px;align-items:center;min-height:78vh}
+.hero h1{font-size:clamp(34px,6vw,58px)}
+.tag{display:inline-block;background:var(--butter);color:var(--pi);padding:4px 12px;border-radius:20px;font-weight:700;font-size:13px;letter-spacing:.08em}
+.btn{display:inline-block;border:0;cursor:pointer;background:var(--blue);color:var(--pi);font:700 15px inherit;padding:10px 20px;border-radius:12px;box-shadow:0 5px 0 #7fa6bf;transition:.15s;text-decoration:none}
+.btn:hover{transform:translateY(2px);box-shadow:0 3px 0 #7fa6bf}.btn:disabled{opacity:.45;cursor:not-allowed}
+.scene{perspective:900px;height:360px;display:grid;place-items:center}
+.world{transform-style:preserve-3d;transform:rotateX(calc(var(--ty,0)*1deg)) rotateY(calc(var(--tx,0)*1deg));transition:transform .15s}
+.cube{--s:130px;width:var(--s);height:var(--s);position:relative;transform-style:preserve-3d;animation:spin 16s linear infinite}
+.cube div{position:absolute;inset:0;display:grid;place-items:center;font:700 22px Cambria,serif;color:var(--pi);border:2px solid #fff8;border-radius:10px;backface-visibility:visible;opacity:.93}
+.cube div:nth-child(1){background:var(--blue);transform:translateZ(65px)}.cube div:nth-child(2){background:var(--rose);transform:rotateY(180deg) translateZ(65px)}
+.cube div:nth-child(3){background:var(--sage);transform:rotateY(90deg) translateZ(65px)}.cube div:nth-child(4){background:var(--butter);transform:rotateY(-90deg) translateZ(65px)}
+.cube div:nth-child(5){background:var(--lav);transform:rotateX(90deg) translateZ(65px)}.cube div:nth-child(6){background:var(--blue);transform:rotateX(-90deg) translateZ(65px)}
+@keyframes spin{to{transform:rotateX(360deg) rotateY(360deg)}}
+.slab{position:absolute;width:190px;height:70px;border-radius:10px;border:2px solid #fff8;color:var(--pi);font-weight:700;display:grid;place-items:center;transform:rotateX(62deg) rotateZ(-20deg);animation:fl 5s ease-in-out infinite}
+@keyframes fl{50%{translate:0 -14px}}
+/* lab */
+.lab{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
+.pills{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.pill{border:2px solid var(--line);background:var(--card);color:var(--ink);padding:6px 12px;border-radius:20px;cursor:pointer;font:600 14px inherit}
+.pill.on{background:var(--rose);color:var(--pi);border-color:var(--rose)}
+svg{max-width:100%;height:auto}svg text{font:600 13px Calibri,Arial,sans-serif;fill:var(--pi);text-anchor:middle;dominant-baseline:central}
+.dr{stroke:var(--mut);stroke-width:2;fill:none;stroke-dasharray:300;animation:draw 1s forwards}@keyframes draw{from{stroke-dashoffset:300}to{stroke-dashoffset:0}}
+.sh{stroke:var(--mut);stroke-width:2}
+.steps{display:flex;gap:8px;align-items:center;margin:12px 0}
+.dot{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:700;background:var(--line);color:var(--ink);transition:.3s}.dot.on{background:var(--sage);color:var(--pi);transform:scale(1.15)}
+.tbs{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px}
+.tb{background:var(--card);border-radius:12px;box-shadow:0 6px 16px #3b4a5a26;min-width:150px;overflow:hidden;animation:pop .5s;transform:perspective(600px) rotateX(3deg)}
+.tb h4{margin:0;padding:6px 12px;background:var(--blue);color:var(--pi);font-size:13px}
+.tb.nt h4{background:var(--butter)}
+.c{padding:3px 12px;font-size:14px;border-top:1px solid var(--line)}.c.new{animation:hl 1.6s}
+.tg{font-size:10px;font-weight:700;color:var(--mut);margin-left:4px}.tg.new{background:var(--rose);color:var(--pi);padding:1px 5px;border-radius:6px;animation:pop .6s}
+@keyframes pop{from{opacity:0;transform:scale(.7)}}@keyframes hl{0%,60%{background:var(--butter);color:var(--pi)}}
+pre{background:var(--card);border-radius:12px;padding:12px;overflow-x:auto;font:12.5px/1.45 "Courier New",monospace;margin:10px 0;color:var(--ink);border:1px solid var(--line)}
+.note{background:var(--butter);color:var(--pi);padding:10px 14px;border-radius:12px;font-weight:600;min-height:48px}
+select,input[type=text]{font:inherit;padding:6px 10px;border-radius:10px;border:2px solid var(--line);background:var(--card);color:var(--ink)}
+.log div{padding:4px 10px;border-radius:8px;margin:4px 0;font-size:14px;animation:pop .4s}.log .ok{background:var(--sage);color:var(--pi)}.log .er{background:var(--rose);color:var(--pi)}
+table{border-collapse:collapse;width:100%}td,th{padding:4px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:14px}th{background:var(--blue);color:var(--pi)}tr.gone{animation:gone .4s forwards}@keyframes gone{to{opacity:0;transform:translateX(30px)}}
+/* flip cards */
+.fg{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-top:18px}
+.fc{perspective:800px;height:170px;cursor:pointer}
+.fi{position:relative;height:100%;transform-style:preserve-3d;transition:transform .7s}.fc.f .fi,.fc:hover .fi{transform:rotateY(180deg)}
+.fi>div{position:absolute;inset:0;border-radius:16px;padding:16px;backface-visibility:hidden;color:var(--pi);box-shadow:0 8px 20px #3b4a5a30}
+.fi>div:last-child{transform:rotateY(180deg);font-size:15px}.fi b{font:700 20px Cambria,serif;display:block}
+/* quiz */
+.lt{display:flex;flex-wrap:wrap;gap:8px}.lt button{flex:1;min-width:130px}
+.opt{display:block;width:100%;text-align:left;margin:8px 0;padding:11px 14px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);font:inherit;cursor:pointer;transition:.2s}
+.opt:hover:not(:disabled){transform:translateX(6px);border-color:var(--blue)}.opt.ok{background:var(--sage);color:var(--pi);border-color:var(--sage)}.opt.no{background:var(--rose);color:var(--pi);border-color:var(--rose);animation:sk .4s}
+@keyframes sk{25%{translate:-6px}75%{translate:6px}}
+.bar{height:10px;background:var(--line);border-radius:6px;overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;background:var(--sage);width:0;transition:.5s}
+.vs{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-top:16px}
+footer{text-align:center;color:var(--mut);padding:30px}
+@media(max-width:760px){.hero,.lab{grid-template-columns:1fr}.scene{height:300px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.rv{opacity:1;transform:none}}
+</style></head><body>
+<nav><a href="#top">Home</a><a href="#lab">Mapping lab</a><a href="#rules">7 rules</a><a href="#integrity">Integrity lab</a><a href="#practice">Exercises</a></nav>
+
+<section class="hero" id="top">
+ <div><span class="tag">CHAPTER 3 · RELATIONAL DATABASES</span>
+  <h1>From Chen ERD to the Relational Model</h1>
+  <p class="sub">Watch entities, relationships and attributes turn into tables, keys and constraints. Play with the simulators, then climb five levels of exercises.</p>
+  <p><a class="btn" href="#lab">Start the mapping lab</a> <a class="btn" style="background:var(--rose);box-shadow:0 5px 0 #d99d98" href="#practice">Jump to exercises</a></p></div>
+ <div class="scene"><div class="world" id="world">
+  <div class="slab" style="background:var(--sage);translate:-90px 70px">STUDENT</div>
+  <div class="slab" style="background:var(--butter);translate:90px 110px;animation-delay:-2s">ENROLLS</div>
+  <div class="slab" style="background:var(--rose);translate:-20px 150px;animation-delay:-3.5s">COURSE</div>
+  <div class="cube"><div>ERD</div><div>TABLE</div><div>PK</div><div>FK</div><div>1:N</div><div>SQL</div></div></div></div>
+</section>
+
+<section id="lab"><h2 class="rv">Mapping lab</h2>
+ <p class="sub rv">Pick a Chen scenario, then press <b>Next</b> to apply the mapping rule step by step. Toggle the option to see how participation or cardinality changes the result.</p>
+ <div class="pills" id="presets"></div>
+ <div class="lab">
+  <div class="card"><b>Chen ERD</b><div id="erd"></div><label id="optw" style="display:block;margin-top:6px"><input type="checkbox" id="opt"> <span id="optl"></span></label></div>
+  <div class="card"><b>Relational schema</b>
+   <div class="steps"><div class="dot" id="d1">1</div><div class="dot" id="d2">2</div><div class="dot" id="d3">3</div>
+    <button class="btn" id="back">Back</button><button class="btn" id="next">Next</button><button class="btn" id="play" style="background:var(--lav);box-shadow:0 5px 0 #aa9dcb">Auto-play</button></div>
+   <div class="note" id="stepnote"></div><div class="tbs" id="tbs"></div></div></div>
+ <pre id="sql" class="rv" style="display:none"></pre></section>
+
+<section id="rules"><h2 class="rv">The 7 mapping rules</h2><p class="sub rv">Hover or tap a card to flip it.</p><div class="fg" id="fg"></div></section>
+
+<section id="integrity"><h2 class="rv">Integrity lab: foreign keys in action</h2>
+ <p class="sub rv">Delete departments, insert employees and watch the DBMS enforce referential integrity under each <code>ON DELETE</code> policy.</p>
+ <div class="card" style="margin-top:14px"><div class="pills" style="align-items:center">ON DELETE <select id="pol"><option>RESTRICT</option><option>CASCADE</option><option>SET NULL</option></select>
+  <label><input type="checkbox" id="nn"> dept_id NOT NULL</label><button class="btn" id="rs">Reset</button></div>
+  <div class="vs"><div><b>DEPARTMENT</b><table id="td"></table></div><div><b>EMPLOYEE</b><table id="te"></table>
+   <p><input type="text" id="nm" value="Sam" size="8"> dept_id <select id="ds"></select> <button class="btn" id="ins">Insert</button></p></div></div>
+  <div class="log" id="log"></div></div></section>
+
+<section id="practice"><h2 class="rv">Exercises: five levels, getting harder</h2>
+ <p class="sub rv">Score 60% or more to unlock the next level.</p><div class="lt" id="lt"></div>
+ <div class="card" style="margin-top:14px"><div class="bar"><i id="pb"></i></div><div id="qa"></div></div></section>
+<footer>Course Relational Databases · Chapter 3 · Dr. Jihed Hammami · Horizon School of Digital Technologies</footer>
+
+<script>
+const $=s=>document.querySelector(s),H=(e,h)=>e.innerHTML=h;
+document.addEventListener('mousemove',e=>{const w=$('#world');w.style.setProperty('--tx',(e.clientX/innerWidth-.5)*40);w.style.setProperty('--ty',-(e.clientY/innerHeight-.5)*30)});
+const io=new IntersectionObserver(es=>es.forEach(x=>x.isIntersecting&&x.target.classList.add('in')),{threshold:.15});document.querySelectorAll('.rv').forEach(e=>io.observe(e));
+/* ---------- Mapping lab ---------- */
+const k=(c,s,...t)=>({c,s,t}),T=(n,s,...cols)=>({n,s,cols});
+const P={
+dn:{l:'Department – Employee (1:N)',o:'Employee must belong to a department (total)',erd:{l:'DEPARTMENT',r:'EMPLOYEE',rel:'WORKS_IN',cl:'1',cr:'N',dr:1},
+ t:o=>[T('DEPARTMENT',1,k('dept_id',1,['PK',1]),k('dept_name',1)),T('EMPLOYEE',1,k('emp_id',1,['PK',1]),k('emp_name',1),k('dept_id',2,['FK→DEPARTMENT',2],...(o?[['NOT NULL',3]]:[])))],
+ st:o=>['Each strong entity becomes a table; key attributes become primary keys.','Cardinality 1:N → copy the “1” side’s PK into the N side as a foreign key.',o?'EMPLOYEE is total → the FK is NOT NULL.':'EMPLOYEE is partial → the FK may stay NULL.'],
+ q:o=>`CREATE TABLE employee (\n  emp_id INT PRIMARY KEY,\n  emp_name VARCHAR(60),\n  dept_id INT${o?' NOT NULL':''},\n  FOREIGN KEY (dept_id) REFERENCES department(dept_id));`},
+mg:{l:'Manager – Branch (1:1)',o:'Every manager must manage a branch (total)',erd:{l:'MANAGER',r:'BRANCH',rel:'MANAGES',cl:'1',cr:'1',dl:1},
+ t:o=>[T('MANAGER',1,k('mgr_id',1,['PK',1]),k('mgr_name',1),k('branch_id',2,['FK→BRANCH',2],['UNIQUE',3],...(o?[['NOT NULL',3]]:[]))),T('BRANCH',1,k('branch_id',1,['PK',1]),k('address',1))],
+ st:o=>['Each entity becomes a table.','1:1 → put an FK on one side (here MANAGER).',o?'MANAGER is total → FK on that side is NOT NULL, plus UNIQUE to keep it 1:1.':'Both sides partial → the FK could go on either side. Add UNIQUE to keep it 1:1; it stays nullable.'],
+ q:o=>`CREATE TABLE manager (\n  mgr_id INT PRIMARY KEY,\n  mgr_name VARCHAR(60),\n  branch_id INT${o?' NOT NULL':''} UNIQUE,\n  FOREIGN KEY (branch_id) REFERENCES branch(branch_id));`},
+mn:{l:'Student – Course (M:N)',erd:{l:'STUDENT',r:'COURSE',rel:'ENROLLS',cl:'M',cr:'N'},
+ t:()=>[T('STUDENT',1,k('student_id',1,['PK',1]),k('student_name',1)),T('COURSE',1,k('course_id',1,['PK',1]),k('title',1)),T('ENROLLS',2,k('student_id',2,['FK→STUDENT',2],['PK',3]),k('course_id',2,['FK→COURSE',2],['PK',3]),k('grade',2))],
+ st:()=>['Each entity becomes a table.','M:N → a new junction table with an FK to each side, plus the relationship attribute grade.','The two FKs together form the composite primary key.'],
+ q:()=>`CREATE TABLE enrolls (\n  student_id INT,\n  course_id INT,\n  grade DECIMAL(4,2),\n  PRIMARY KEY (student_id, course_id),\n  FOREIGN KEY (student_id) REFERENCES student(student_id),\n  FOREIGN KEY (course_id) REFERENCES course(course_id));`},
+wk:{l:'Employee – Dependent (weak)',erd:{l:'EMPLOYEE',r:'DEPENDENT',rel:'HAS',cl:'1',cr:'N',dr:1,wr:1,id:1},
+ t:()=>[T('EMPLOYEE',1,k('emp_id',1,['PK',1]),k('emp_name',1)),T('DEPENDENT',1,k('emp_id',2,['FK→EMPLOYEE',2],['PK',3],['ON DELETE CASCADE',3]),k('dep_name',1,['PK',3]),k('birth_date',1))],
+ st:()=>['The strong entity becomes a table. The weak entity gets a table with its partial key dep_name.','Copy the owner’s PK into the weak table as a foreign key.','PK = owner’s PK + partial key. ON DELETE CASCADE removes orphan dependents.'],
+ q:()=>`CREATE TABLE dependent (\n  emp_id INT,\n  dep_name VARCHAR(60),\n  birth_date DATE,\n  PRIMARY KEY (emp_id, dep_name),\n  FOREIGN KEY (emp_id) REFERENCES employee(emp_id) ON DELETE CASCADE);`},
+tn:{l:'Supplier – Part – Project (ternary)',o:'Each (supplier, part) pair supplies at most ONE project',erd:{l:'SUPPLIER',r:'PART',rel:'SUPPLIES',cl:'M',cr:'N',third:'PROJECT'},
+ t:o=>[T('SUPPLIER',1,k('supplier_id',1,['PK',1])),T('PART',1,k('part_id',1,['PK',1])),T('PROJECT',1,k('project_id',1,['PK',1])),T('SUPPLIES',2,k('supplier_id',2,['FK→SUPPLIER',2],['PK',3]),k('part_id',2,['FK→PART',2],['PK',3]),k('project_id',2,['FK→PROJECT',2],...(o?[]:[['PK',3]])),k('qty',2))],
+ st:o=>['Each entity becomes a table.','N-ary → one junction table with an FK for every participant.',o?'The “1” side leaves the PK: PK = (supplier_id, part_id).':'M:N:P → the PK uses all three FKs.'],
+ q:o=>`CREATE TABLE supplies (\n  supplier_id INT, part_id INT, project_id INT, qty INT,\n  PRIMARY KEY (supplier_id, part_id${o?'':', project_id'}),\n  FOREIGN KEY (supplier_id) REFERENCES supplier(supplier_id),\n  FOREIGN KEY (part_id) REFERENCES part(part_id),\n  FOREIGN KEY (project_id) REFERENCES project(project_id));`},
+mv:{l:'Person – phone (multivalued)',erd:{l:'PERSON',mv:'phone'},
+ t:()=>[T('PERSON',1,k('person_id',1,['PK',1]),k('name',1)),T('PERSON_PHONE',2,k('person_id',2,['FK→PERSON',2],['PK',3],['ON DELETE CASCADE',3]),k('phone',2,['PK',3]))],
+ st:()=>['The entity becomes a table; the multivalued attribute is not a column.','Multivalued attribute → its own table linked to the owner by an FK.','PK = (owner key, value); cascade the delete with the owner.'],
+ q:()=>`CREATE TABLE person_phone (\n  person_id INT,\n  phone VARCHAR(20),\n  PRIMARY KEY (person_id, phone),\n  FOREIGN KEY (person_id) REFERENCES person(person_id) ON DELETE CASCADE);`}};
+let cur='dn',step=1,opt=true,timer;
+const ent=(x,y,n,w)=>`<rect class="sh" x="${x-55}" y="${y-23}" width="110" height="46" fill="var(--blue)"/>${w?`<rect class="sh" x="${x-50}" y="${y-18}" width="100" height="36" fill="none"/>`:''}<text x="${x}" y="${y}">${n}</text>`;
+const dia=(x,y,n,i)=>`<polygon class="sh" points="${x-55},${y} ${x},${y-32} ${x+55},${y} ${x},${y+32}" fill="var(--rose)"/>${i?`<polygon class="sh" points="${x-45},${y} ${x},${y-25} ${x+45},${y} ${x},${y+25}" fill="none"/>`:''}<text x="${x}" y="${y}">${n}</text>`;
+const ln=(a,b,c,d,v)=>v?`<path class="dr" d="M${a} ${b-2.5}H${c}M${a} ${b+2.5}H${c}"/>`:`<path class="dr" d="M${a} ${b}L${c} ${d}"/>`;
+function erd(c){let s='';
+ if(c.mv)s=ln(130,90,300,90)+ent(75,90,c.l)+`<ellipse class="sh" cx="360" cy="90" rx="58" ry="24" fill="var(--card)"/><ellipse class="sh" cx="360" cy="90" rx="52" ry="19" fill="none"/><text x="360" y="90">${c.mv}</text>`;
+ else{s=ln(130,90,175,90,c.dl)+ln(285,90,330,90,c.dr)+(c.third?ln(230,122,230,150):'')+ent(75,90,c.l)+dia(230,90,c.rel,c.id)+ent(385,90,c.r,c.wr)+(c.third?ent(230,175,c.third):'')+`<text x="150" y="76">${c.cl}</text><text x="310" y="76">${c.cr}</text>`}
+ return`<svg viewBox="0 0 460 ${c.third?205:170}" role="img" aria-label="Chen ERD">${s}</svg>`}
+function lab(){const p=P[cur],o=p.o?opt:false;H($('#erd'),erd(p.erd));
+ const e=p.erd;if(p.o&&cur=='dn')e.dr=o;if(p.o&&cur=='mg')e.dl=o;
+ H($('#erd'),erd(e));$('#optw').style.display=p.o?'block':'none';$('#optl').textContent=p.o||'';
+ [1,2,3].forEach(i=>$('#d'+i).classList.toggle('on',i<=step));
+ H($('#stepnote'),`<b>Step ${step}:</b> ${p.st(o)[step-1]}`);
+ H($('#tbs'),p.t(o).filter(t=>t.s<=step).map(t=>`<div class="tb ${t.s>1?'nt':''}"><h4>${t.n}</h4>${t.cols.filter(c=>c.s<=step).map(c=>`<div class="c ${c.s==step&&c.s>1?'new':''}">${c.c}${c.t.filter(g=>g[1]<=step).map(g=>`<span class="tg ${g[1]==step&&g[1]>1?'new':''}">${g[0]}</span>`).join('')}</div>`).join('')}</div>`).join(''));
+ const s=$('#sql');s.style.display=step==3?'block':'none';s.textContent=step==3?p.q(o):'';
+ $('#back').disabled=step==1;$('#next').disabled=step==3}
+H($('#presets'),Object.keys(P).map(x=>`<button class="pill" data-k="${x}">${P[x].l}</button>`).join(''));
+document.querySelectorAll('.pill[data-k]').forEach(b=>b.onclick=()=>{cur=b.dataset.k;step=1;clearInterval(timer);document.querySelectorAll('.pill[data-k]').forEach(x=>x.classList.toggle('on',x==b));lab()});
+document.querySelector('.pill[data-k=dn]').classList.add('on');
+$('#opt').checked=true;$('#opt').onchange=e=>{opt=e.target.checked;lab()};
+$('#next').onclick=()=>{step=Math.min(3,step+1);lab()};$('#back').onclick=()=>{step=Math.max(1,step-1);lab()};
+$('#play').onclick=()=>{clearInterval(timer);step=1;lab();timer=setInterval(()=>{if(step>=3)return clearInterval(timer);step++;lab()},2200)};lab();
+/* ---------- Rules ---------- */
+const RU=[['Strong entity','Table. Each attribute is a column; the key attribute is the PRIMARY KEY.','blue'],['Special attributes','Composite → one column per part. Multivalued → new table. Derived → not stored.','sage'],['Weak entity','Table with PK = owner’s PK + partial key. FK to the owner, usually ON DELETE CASCADE.','rose'],['1:N','FK on the N side, pointing to the “1” side. NOT NULL if the N side is total.','butter'],['1:1','FK + UNIQUE on the total side. If both sides are total, merging is valid.','lav'],['M:N','Junction table with an FK to each side. PK = both FKs. Relationship attributes live here.','blue'],['N-ary','Junction table with an FK per participant. A side with cardinality 1 leaves the PK.','sage'],['Bonus: ISA','Table per class (subclass PK = FK), table per concrete class, or one table with a type column.','rose']];
+H($('#fg'),RU.map((r,i)=>`<div class="fc rv" onclick="this.classList.toggle('f')"><div class="fi"><div style="background:var(--${r[2]})"><small>RULE ${i<7?i+1:'+'}</small><b>${r[0]}</b></div><div style="background:var(--${r[2]})">${r[1]}</div></div></div>`).join(''));
+document.querySelectorAll('.fc').forEach(e=>io.observe(e));
+/* ---------- Integrity lab ---------- */
+let D,Em,nid;const log=(m,t)=>{const d=document.createElement('div');d.className=t;d.textContent=m;$('#log').prepend(d)};
+function rs(){D=[[1,'Math'],[2,'CS']];Em=[[1,'Alice',1],[2,'Omar',1],[3,'Lina',2]];nid=4;$('#log').innerHTML='';ir()}
+function ir(){H($('#td'),'<tr><th>dept_id</th><th>name</th><th></th></tr>'+D.map(d=>`<tr><td>${d[0]}</td><td>${d[1]}</td><td><button class="pill" onclick="del(${d[0]})">Delete</button></td></tr>`).join(''));
+ H($('#te'),'<tr><th>emp_id</th><th>name</th><th>dept_id</th></tr>'+Em.map(e=>`<tr id="e${e[0]}"><td>${e[0]}</td><td>${e[1]}</td><td>${e[2]===null?'NULL':e[2]}</td></tr>`).join(''));
+ H($('#ds'),D.map(d=>`<option>${d[0]}</option>`).join('')+'<option>NULL</option><option>99</option>')}
+window.del=id=>{const p=$('#pol').value,n=Em.filter(e=>e[2]===id).length;
+ if(p=='RESTRICT'&&n)return log(`Rejected: department ${id} is referenced by ${n} employee(s).`,'er');
+ if(p=='CASCADE'&&n){Em.filter(e=>e[2]===id).forEach(e=>{const r=$('#e'+e[0]);r&&r.classList.add('gone')});log(`Deleted department ${id} and cascaded to ${n} employee(s).`,'ok');setTimeout(()=>{Em=Em.filter(e=>e[2]!==id);D=D.filter(d=>d[0]!==id);ir()},400);return}
+ if(p=='SET NULL'&&n){Em.forEach(e=>{if(e[2]===id)e[2]=null});log(`Deleted department ${id}; ${n} employee(s) now have dept_id NULL.`,'ok')}else log(`Deleted department ${id}.`,'ok');
+ D=D.filter(d=>d[0]!==id);ir()};
+$('#ins').onclick=()=>{const v=$('#ds').value,nm=$('#nm').value||'?';
+ if(v=='99')return log('Rejected: dept_id 99 does not exist in DEPARTMENT (referential integrity).','er');
+ if(v=='NULL'&&$('#nn').checked)return log('Rejected: dept_id is NOT NULL.','er');
+ Em.push([nid++,nm,v=='NULL'?null:+v]);log(`Inserted ${nm} with dept_id ${v}.`,'ok');ir()};
+$('#nn').onchange=e=>{const o=$('#pol').options[2];o.disabled=e.target.checked;if(e.target.checked&&$('#pol').value=='SET NULL')$('#pol').value='RESTRICT'};
+$('#rs').onclick=rs;rs();
+/* ---------- Exercises ---------- */
+const YN=['Yes','No'];
+const LV=[
+['Level 1 · Warm-up',[['Which Chen symbol represents a relationship?',['Rectangle','Ellipse','Diamond','Double ellipse'],2,'Diamond = relationship, rectangle = entity, ellipse = attribute, double ellipse = multivalued attribute.'],['A strong entity becomes a table.',YN,0,'One table per strong entity; attributes become columns.'],['In a relation, a tuple is…',['a column','a row','a table','a domain'],1,'Tuple = row = one record.'],['A primary key column may contain NULL.',YN,1,'Entity integrity forbids NULL in any PK column.']]],
+['Level 2 · Keys',[['A minimal superkey is called a…',['Foreign key','Candidate key','Surrogate key','Composite key'],1,'Candidate key: unique, and no attribute can be removed.'],['STUDENT(student_id, email, name): student_id is the PK and email is also unique. email is an…',['Alternate key','Foreign key','Surrogate key','Composite key'],0,'A candidate key not chosen as PK is an alternate key.'],['A foreign key value must be NULL or match an existing key value.',YN,0,'That is the referential integrity rule.'],['EMPLOYEE.dept_id is a FK to DEPARTMENT (ids 1 and 2). Which operation violates integrity?',['Insert an employee with dept_id 99','Update an employee’s name','Insert an employee with dept_id 1','Delete an employee'],0,'Department 99 does not exist, so the FK would dangle.']]],
+['Level 3 · Mapping relationships',[['CUSTOMER (1) places ORDER (N). Where does the foreign key go?',['CUSTOMER table','ORDER table','Both tables','A new table is required'],1,'The FK sits on the N side and references the “1” side.'],['AUTHOR M:N BOOK. What do you create?',['An FK in AUTHOR','An FK in BOOK','A junction table WRITES','One merged table'],2,'M:N always needs a junction table.'],['PERSON 1:1 PASSPORT; every passport belongs to a person, but not everyone has a passport. Best mapping?',['PERSON.passport_id (nullable)','PASSPORT.person_id UNIQUE NOT NULL','No FK is needed','A junction table only'],1,'FK on the total side (PASSPORT) avoids NULLs; UNIQUE keeps it 1:1.'],['The attribute since of a 1:N relationship WORKS_IN (DEPARTMENT 1, EMPLOYEE N) is stored in…',['DEPARTMENT','EMPLOYEE','Both tables','A new table'],1,'Relationship attributes move with the FK, here into EMPLOYEE.']]],
+['Level 4 · Special cases',[['ROOM is weak (partial key room_no) on BUILDING(building_id). What is ROOM’s PK?',['room_no','building_id','(building_id, room_no)','A new table is required'],2,'Weak entity PK = owner’s PK + partial key.'],['USER has a multivalued attribute email. How is it mapped?',['A comma-separated column','USER_EMAIL(user_id PK,FK; email PK)','email1, email2, email3 columns','It is dropped'],1,'Atomic cells: a separate table linked by an FK.'],['A derived attribute such as age is, by default, stored as a column.',YN,1,'It is omitted and computed when needed.'],['DOCTOR, PATIENT, MEDICINE in an M:N:P ternary relationship PRESCRIBES. PK of the table?',['doctor_id','(doctor_id, patient_id)','(doctor_id, patient_id, medicine_id)','medicine_id'],2,'With no extra constraint the PK uses all three FKs.'],['If each (supplier, part) pair supplies at most one project, project_id must be part of the PK.',YN,1,'The pair already determines the project, so project_id leaves the PK.']]],
+['Level 5 · Challenge',[['A TEACHER teaches many COURSEs; every COURSE has exactly one TEACHER. Best mapping?',['TEACHER(teacher_id PK, name, course_id FK)','COURSE(course_id PK, title, teacher_id FK NOT NULL)','TEACHER(teacher_id, name, course1, course2, course3)','TEACHES(teacher_id PK, course_id)'],1,'1:N → FK on the N side (COURSE), NOT NULL because it is total.'],['STUDENT ISA PERSON, mapped with a table per class. The PK of STUDENT is…',['A new unrelated surrogate','PERSON’s ssn, also an FK to PERSON','name','There is no PK'],1,'The subclass table’s PK is the superclass key, which is also an FK.'],['EMPLOYEE SUPERVISES EMPLOYEE (at most one supervisor each). Best mapping?',['EMPLOYEE(emp_id PK, …, supervisor_id FK→EMPLOYEE, nullable)','SUPERVISES(emp_id PK, supervisor_id PK)','Two copies of EMPLOYEE','supervisor_id as PK'],0,'Recursive 1:N → an FK to its own table; NULL for the top boss.'],['If both sides of a 1:1 relationship are total, merging the two tables is a valid mapping.',YN,0,'Each row on one side has exactly one partner, so one table works.'],['A student may retake the same course in different semesters. PK of ENROLLS?',['(student_id, course_id)','(student_id, course_id, semester)','student_id','course_id'],1,'The pair alone would repeat; adding semester makes each enrollment unique.']]]];
+let best={},L=0,Q=0,sc=0,done=false;try{best=JSON.parse(localStorage.getItem('c3best')||'{}')}catch(e){}
+const pct=i=>best[i]??-1,open=i=>i==0||pct(i-1)>=.6;
+function tabs(){H($('#lt'),LV.map((l,i)=>`<button class="pill ${i==L?'on':''}" ${open(i)?'':'disabled'} onclick="go(${i})">${open(i)?'':'🔒 '}${l[0]}${pct(i)>=0?' · '+Math.round(pct(i)*100)+'%':''}</button>`).join(''))}
+window.go=i=>{L=i;Q=0;sc=0;done=false;tabs();qz()};
+function qz(){const qs=LV[L][1];$('#pb').style.width=(Q/qs.length*100)+'%';
+ if(Q>=qs.length){const p=sc/qs.length;best[L]=Math.max(pct(L),p);try{localStorage.setItem('c3best',JSON.stringify(best))}catch(e){}tabs();
+  return H($('#qa'),`<h3>${sc} / ${qs.length} correct</h3><p>${p>=.6?(L<4?'Great! Next level unlocked.':'You finished every level. Outstanding!'):'Score 60% or more to unlock the next level. Try again!'}</p><button class="btn" onclick="go(${L})">Retry</button> ${p>=.6&&L<4?`<button class="btn" onclick="go(${L+1})">Next level</button>`:''}`)}
+ const q=qs[Q];H($('#qa'),`<small>Question ${Q+1} of ${qs.length}</small><h3>${q[0]}</h3>${q[1].map((o,i)=>`<button class="opt" onclick="ans(${i})">${o}</button>`).join('')}<div id="fb"></div>`)}
+window.ans=i=>{const q=LV[L][1][Q],bs=document.querySelectorAll('.opt');bs.forEach((b,j)=>{b.disabled=true;if(j==q[2])b.classList.add('ok')});
+ if(i==q[2])sc++;else bs[i].classList.add('no');
+ H($('#fb'),`<div class="note" style="margin:10px 0">${i==q[2]?'Correct! ':'Not quite. '}${q[3]}</div><button class="btn" onclick="Q++;qz()">${Q==LV[L][1].length-1?'Finish':'Next'}</button>`)};
+go(0);
+</script></body></html>
