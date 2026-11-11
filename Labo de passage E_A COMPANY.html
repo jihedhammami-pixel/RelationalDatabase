@@ -1,0 +1,934 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Labo de passage E/A COMPANY</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<style>
+/* Layout concept: a drafting table. Sticky "stage" (ERD + growing schema) on the left, the seven mapping steps scroll on the right; each step lights up the constructs it consumes and adds cells to the schema. */
+:root{
+  --bg:#F3F6FA; --surface:#FFFFFF; --surface-2:#EAF0F6; --ink:#15233B; --muted:#5B6A80; --line:#D3DCE7;
+  --entity:#1F9D8B; --entity-soft:#D7F1EC;
+  --rel:#E59A2F; --rel-soft:#FBEBD2;
+  --attr:#6F62E8; --attr-soft:#E7E4FC;
+  --pk:#E2604A; --pk-soft:#FCE1DB;
+  --fk:#2F7FE0; --fk-soft:#DCEAFB;
+  --ok:#2E9E5B; --bad:#D2453A;
+  --grad: linear-gradient(115deg,#1F9D8B 0%,#2F7FE0 38%,#6F62E8 64%,#E2604A 100%);
+  --glow1:#7FE3D2; --glow2:#FFC97A; --glow3:#B9B2FF;
+  --dim:.16;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --shadow: 0 1px 2px rgba(21,35,59,.06), 0 8px 28px rgba(21,35,59,.08);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0D1524; --surface:#142035; --surface-2:#1B2A44; --ink:#EAF0F8; --muted:#9FB0C8; --line:#2A3B58;
+  --entity:#44C9B4; --entity-soft:#123A3A; --rel:#F2B45A; --rel-soft:#3A2D16; --attr:#9A90FF; --attr-soft:#27244A;
+  --pk:#FF8A73; --pk-soft:#40221E; --fk:#6AA8FF; --fk-soft:#16294A; --ok:#5ACB86; --bad:#FF7A6E;
+  --glow1:#1E6B62; --glow2:#6A4A18; --glow3:#3E3786; --dim:.2;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35); color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0D1524; --surface:#142035; --surface-2:#1B2A44; --ink:#EAF0F8; --muted:#9FB0C8; --line:#2A3B58;
+  --entity:#44C9B4; --entity-soft:#123A3A; --rel:#F2B45A; --rel-soft:#3A2D16; --attr:#9A90FF; --attr-soft:#27244A;
+  --pk:#FF8A73; --pk-soft:#40221E; --fk:#6AA8FF; --fk-soft:#16294A; --ok:#5ACB86; --bad:#FF7A6E;
+  --glow1:#1E6B62; --glow2:#6A4A18; --glow3:#3E3786; --dim:.2;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35); color-scheme:dark }
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.6;overflow-x:hidden}
+h1,h2,h3{font-family:var(--f-display);line-height:1.08;text-wrap:balance;margin:0}
+p{margin:0}
+code,.mono{font-family:var(--f-mono)}
+a{color:var(--fk)}
+:focus-visible{outline:3px solid var(--fk);outline-offset:2px;border-radius:6px}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.grad-text{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* progress + ambient */
+.progress{position:fixed;left:0;right:0;top:0;height:4px;z-index:30;padding-top:env(safe-area-inset-top,0px)}
+.progress i{display:block;height:4px;width:100%;transform-origin:0 50%;transform:scaleX(var(--p,0));background:var(--grad)}
+.ambient{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.ambient span{position:absolute;border-radius:50%;filter:blur(70px);opacity:.55;will-change:transform}
+.ambient .b1{width:42vw;height:42vw;left:-10vw;top:-8vw;background:var(--glow1)}
+.ambient .b2{width:36vw;height:36vw;right:-8vw;top:30vh;background:var(--glow3)}
+.ambient .b3{width:30vw;height:30vw;left:30vw;bottom:-14vw;background:var(--glow2)}
+main{position:relative;z-index:1}
+
+/* hero */
+.hero{padding-block:72px 40px}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center}
+.hero h1{font-size:clamp(40px,6vw,78px);font-weight:800;letter-spacing:-.02em;margin-block:14px 18px}
+.hero .lede{font-size:19px;color:var(--muted);max-width:56ch}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line);font-size:13px;font-weight:600}
+.chip i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.hero-cta{display:flex;gap:12px;margin-top:28px;flex-wrap:wrap}
+.btn{appearance:none;border:0;cursor:pointer;font:600 15px/1 var(--f-body);padding:13px 18px;border-radius:12px;background:var(--ink);color:var(--bg);display:inline-flex;align-items:center;gap:8px;text-decoration:none}
+.btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+.btn.small{padding:9px 13px;font-size:13px;border-radius:10px}
+.btn:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+
+/* 3D stack */
+.scene{height:440px;perspective:1100px;display:grid;place-items:center;position:relative}
+.iso{position:relative;width:300px;height:190px;transform-style:preserve-3d;transform:rotateX(calc(58deg + var(--rx,0deg))) rotateZ(calc(-38deg + var(--rz,0deg)));transition:transform .2s ease-out}
+.slab{position:absolute;inset:0;border-radius:14px;transform-style:preserve-3d;transform:translateZ(calc(var(--i) * var(--gap,26px)));
+  background:linear-gradient(135deg, color-mix(in srgb,var(--c) 92%, white) 0%, color-mix(in srgb,var(--c) 70%, black) 100%);
+  box-shadow:0 0 0 1px rgba(255,255,255,.35) inset, 0 24px 40px -18px rgba(10,20,40,.55);
+  transition:transform .6s cubic-bezier(.2,.8,.2,1)}
+.slab::before{content:"";position:absolute;inset:34px 12px 12px;border-radius:6px;
+  background:repeating-linear-gradient(0deg, rgba(255,255,255,.55) 0 1px, transparent 1px 24px), repeating-linear-gradient(90deg, rgba(255,255,255,.45) 0 1px, transparent 1px 64px);opacity:.85}
+.slab::after{content:"";position:absolute;left:0;right:0;bottom:-9px;height:9px;border-radius:0 0 14px 14px;background:color-mix(in srgb,var(--c) 55%, black);transform-origin:top;transform:rotateX(-90deg)}
+.slab b{position:absolute;left:14px;top:9px;font:700 13px/1 var(--f-mono);color:#fff;letter-spacing:.06em;text-shadow:0 1px 2px rgba(0,0,0,.35)}
+.slab.pk-tag::after{}
+.scene-cap{position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:13px;color:var(--muted)}
+
+/* legend strip */
+.legend{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-block:8px 56px}
+.legend .lg{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center;font-size:13px;min-width:0}
+.legend svg{width:100%;height:46px}
+.legend strong{font-size:13px}
+.legend span{color:var(--muted);font-size:12px;line-height:1.35}
+
+/* section heads */
+.sec-head{display:grid;gap:10px;margin-bottom:28px;max-width:760px}
+.sec-head h2{font-size:clamp(30px,4vw,46px);font-weight:800;letter-spacing:-.015em}
+.sec-head p{color:var(--muted);font-size:17px}
+
+/* scrolly */
+.scrolly{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:36px;align-items:start;padding-bottom:40px}
+.stage{position:sticky;top:calc(env(safe-area-inset-top,0px) + 18px);background:var(--surface);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;max-height:calc(100vh - 36px)}
+.stage-bar{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.stage-bar .now{font-weight:700;font-size:14px;flex:1;min-width:150px}
+.stage-bar .now small{display:block;font:600 11px/1.2 var(--f-mono);letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+.tabs{display:none;gap:4px;background:var(--surface-2);padding:3px;border-radius:10px}
+.tabs button{border:0;background:transparent;color:var(--muted);font:600 13px var(--f-body);padding:6px 10px;border-radius:8px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+.stage-body{display:grid;grid-template-rows:auto auto;overflow:auto;min-height:0}
+.erd-wrap{padding:8px 10px 0;overflow-x:auto}
+#erd{width:100%;min-width:560px;height:auto;display:block}
+#erd .n{transition:opacity .45s ease}
+#erd .e{transition:opacity .45s ease}
+#erd.focus .n:not(.on), #erd.focus .e:not(.on){opacity:var(--dim)}
+#erd .n.on rect, #erd .n.on polygon, #erd .n.on ellipse{filter:drop-shadow(0 0 6px color-mix(in srgb, var(--hl, var(--fk)) 70%, transparent))}
+#erd text{font-family:var(--f-body);fill:var(--ink)}
+.schema{border-top:1px dashed var(--line);padding:12px 14px 16px;display:grid;gap:9px;background:linear-gradient(180deg, var(--surface-2), var(--surface))}
+.schema .empty{color:var(--muted);font-size:14px}
+.rel{display:grid;grid-template-columns:118px minmax(0,1fr);gap:8px;align-items:center}
+.rel .rn{font:700 12px/1.1 var(--f-mono);text-align:right;color:var(--ink);overflow-wrap:anywhere}
+.cells{display:flex;flex-wrap:wrap;gap:0;min-width:0}
+.cell{font:500 11.5px/1 var(--f-mono);padding:7px 8px;border:1px solid var(--line);margin:-1px 0 0 -1px;background:var(--surface);white-space:nowrap;position:relative}
+.cell.pk{background:var(--pk-soft);font-weight:700;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--pk)}
+.cell.fk{color:var(--fk);font-style:italic}
+.cell.fk::after{content:"→";font-style:normal;margin-left:4px;opacity:.7}
+.cell.uq{box-shadow:inset 0 -2px 0 var(--attr)}
+.cell.new{animation:pop .7s cubic-bezier(.2,.9,.3,1.3) both}
+.rel.new .rn{animation:slideIn .6s ease both}
+@keyframes pop{0%{transform:translateY(-10px) scale(.6);background:var(--rel-soft);opacity:0}60%{opacity:1}100%{transform:none}}
+@keyframes slideIn{from{transform:translateX(-14px);opacity:0}to{transform:none;opacity:1}}
+.key-note{display:flex;flex-wrap:wrap;gap:10px 16px;font-size:12px;color:var(--muted);padding:0 14px 12px}
+.key-note b{font-family:var(--f-mono);font-size:11px;padding:2px 6px;border:1px solid var(--line);border-radius:4px}
+
+.steps{display:grid;gap:26px;padding-bottom:30vh}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:24px;box-shadow:var(--shadow);transition:border-color .3s, transform .3s;scroll-margin-top:24px;min-width:0}
+.step.active{border-color:color-mix(in srgb,var(--stepc,var(--fk)) 70%, var(--line));transform:translateX(-4px)}
+.step .num{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.step .num em{font:800 15px/1 var(--f-mono);font-style:normal;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;color:#fff;background:var(--stepc,var(--fk));box-shadow:0 6px 16px -6px var(--stepc,var(--fk))}
+.step h3{font-size:24px;font-weight:700;letter-spacing:-.01em}
+.step p{margin-top:10px}
+.rule{margin-top:14px;border-radius:14px;padding:14px 16px;background:color-mix(in srgb,var(--stepc,var(--fk)) 12%, var(--surface));border:1px solid color-mix(in srgb,var(--stepc,var(--fk)) 35%, var(--line))}
+.rule .tag{font:700 11px/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--stepc,var(--fk));margin-bottom:6px;display:block}
+.applies{margin:14px 0 0;padding:0;list-style:none;display:grid;gap:10px}
+.applies li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px}
+.applies li::before{content:"";width:10px;height:10px;margin-top:8px;border-radius:3px;background:var(--stepc,var(--fk))}
+.result{margin-top:14px;font:500 13px/1.7 var(--f-mono);background:var(--surface-2);border-radius:12px;padding:12px 14px;overflow-x:auto;white-space:pre}
+.result u{text-decoration-color:var(--pk);text-decoration-thickness:2px;text-underline-offset:3px}
+.result i{color:var(--fk)}
+.warn{margin-top:14px;display:grid;grid-template-columns:26px minmax(0,1fr);gap:8px;font-size:14.5px;color:var(--muted)}
+.warn::before{content:"!";width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font:800 13px var(--f-mono);color:#fff;background:var(--rel);margin-top:1px}
+.why{margin-top:14px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.why summary{cursor:pointer;padding:10px 14px;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:10px}
+.why summary::-webkit-details-marker{display:none}
+.why summary::after{content:"+";font:700 18px/1 var(--f-mono);color:var(--muted)}
+.why[open] summary::after{content:"–"}
+.why div{padding:0 14px 14px;color:var(--muted);font-size:15px;display:grid;gap:8px}
+.cons{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.cons span{font:600 11.5px/1 var(--f-mono);padding:6px 8px;border-radius:8px;background:var(--surface-2);color:var(--muted)}
+
+/* final */
+.band{padding-block:72px}
+.final-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start}
+.fk-table td:nth-child(3){font-size:13px;color:var(--muted);min-width:130px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:22px;box-shadow:var(--shadow);min-width:0}
+.final-schema{display:grid;gap:12px}
+.final-schema .rel{grid-template-columns:140px minmax(0,1fr)}
+.final-schema .cell{font-size:12.5px;padding:8px 10px;cursor:default}
+.final-schema .cell.fk{cursor:pointer}
+.cell.lit{background:var(--fk-soft);outline:2px solid var(--fk);z-index:2}
+.cell.lit.pk{background:var(--pk-soft);outline-color:var(--pk)}
+.fk-table{width:100%;border-collapse:collapse;font-size:14px}
+.fk-table th,.fk-table td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.fk-table th{font:700 11px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.fk-table td:first-child{font-family:var(--f-mono);font-size:13px;color:var(--fk)}
+.fk-table tr{cursor:pointer}
+.fk-table tr:hover td, .fk-table tr.lit td{background:var(--fk-soft)}
+.scroll-x{overflow-x:auto}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:22px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+.stat b{display:block;font:800 34px/1 var(--f-display);background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat span{font-size:13px;color:var(--muted)}
+
+/* simulator */
+.sim{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:24px;align-items:start}
+.sim form{display:grid;gap:12px}
+.field{display:grid;gap:4px}
+.field label{font-weight:600;font-size:14px}
+.field small{color:var(--muted);font-size:12.5px}
+.field input{font:500 15px var(--f-mono);padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);width:100%}
+.presets{display:flex;flex-wrap:wrap;gap:8px}
+.checks{display:grid;gap:8px;margin-top:6px}
+.check{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:start;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);transition:background .3s,border-color .3s}
+.check .dot{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:800 13px var(--f-mono);background:var(--surface-2);color:var(--muted)}
+.check.run{border-color:var(--rel)}
+.check.run .dot{background:var(--rel);color:#fff;animation:pulse 1s infinite}
+.check.pass{border-color:color-mix(in srgb,var(--ok) 55%, var(--line))}
+.check.pass .dot{background:var(--ok);color:#fff}
+.check.fail{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 9%, var(--surface))}
+.check.fail .dot{background:var(--bad);color:#fff}
+.check strong{display:block;font-size:14px}
+.check span{font-size:13px;color:var(--muted)}
+@keyframes pulse{50%{transform:scale(1.15)}}
+.verdict{margin-top:10px;padding:12px 14px;border-radius:12px;font-weight:600;min-height:48px}
+.verdict.ok{background:color-mix(in srgb,var(--ok) 14%, var(--surface));color:var(--ok)}
+.verdict.no{background:color-mix(in srgb,var(--bad) 12%, var(--surface));color:var(--bad)}
+.data{width:100%;border-collapse:collapse;font:500 12.5px var(--f-mono)}
+.data th,.data td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+.data th{color:var(--muted);font-weight:700}
+.data tr.added td{animation:rowIn 1.2s ease both}
+@keyframes rowIn{0%{background:var(--rel-soft)}100%{background:transparent}}
+.tbl-cap{font:700 12px var(--f-mono);letter-spacing:.1em;margin:4px 0 6px;color:var(--muted)}
+
+/* sql */
+.sql{position:relative}
+.sql pre{margin:0;background:#0F1A2C;color:#DCE6F5;border-radius:16px;padding:20px;font:500 13px/1.65 var(--f-mono);overflow-x:auto}
+.sql .kw{color:#FFC97A;font-weight:700}.sql .cm{color:#7F93B3}.sql .ty{color:#7FE3D2}
+.sql .copy{position:absolute;top:12px;right:12px}
+
+/* quiz */
+.quiz{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.q{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px;display:grid;gap:10px;align-content:start}
+.q h4{margin:0;font:700 17px/1.35 var(--f-body)}
+.q .opts{display:grid;gap:8px}
+.q button.opt{text-align:left;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font:500 14.5px/1.4 var(--f-body);padding:10px 12px;border-radius:10px;cursor:pointer}
+.q button.opt.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%, var(--surface))}
+.q button.opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 10%, var(--surface))}
+.q .fb{font-size:14px;color:var(--muted)}
+footer{padding-block:40px 60px;color:var(--muted);font-size:14px;text-align:center}
+
+/* scroll reveal: content is visible at rest; it only animates when it enters from below */
+.reveal.in{animation:rise .8s cubic-bezier(.2,.8,.2,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+
+@media (max-width: 980px){
+  .hero-grid{grid-template-columns:1fr}
+  .scene{height:340px}
+  .legend{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .scrolly{grid-template-columns:minmax(0,1fr)}
+  .stage{top:calc(env(safe-area-inset-top,0px) + 6px);max-height:52vh;z-index:5}
+  .tabs{display:flex}
+  #erd{min-width:0}
+  .stage-body{display:block}
+  .stage[data-view="erd"] .schema,.stage[data-view="erd"] .key-note{display:none}
+  .stage[data-view="schema"] .erd-wrap{display:none}
+  .step.active{transform:none}
+  .final-grid,.sim{grid-template-columns:minmax(0,1fr)}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .quiz{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width: 520px){
+  .legend{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rel,.final-schema .rel{grid-template-columns:minmax(0,1fr)}
+  .rel .rn{text-align:left}
+  .step{padding:18px}
+}
+@media (prefers-reduced-motion: reduce){
+  *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}
+</style>
+
+<div class="progress" aria-hidden="true"><i id="prog"></i></div>
+<div class="ambient" aria-hidden="true"><span class="b1"></span><span class="b2"></span><span class="b3"></span></div>
+
+<main>
+<!-- ========== HERO ========== -->
+<header class="hero wrap">
+  <div class="hero-grid">
+    <div>
+      <span class="eyebrow">Bases de données relationnelles · TP · Chapitre 3</span>
+      <h1>D’un diagramme E/A de Chen à <span class="grad-text">six relations</span></h1>
+      <p class="lede">Nous traduisons le diagramme E/A classique COMPANY en schéma relationnel avec l’algorithme de passage en sept étapes. Faites défiler : chaque étape éclaire la partie du diagramme qu’elle utilise, énonce la règle et ajoute les colonnes obtenues au schéma.</p>
+      <div class="chips" aria-label="Inventaire du diagramme">
+        <span class="chip"><i style="background:var(--entity)"></i>3 entités fortes</span>
+        <span class="chip"><i style="background:var(--entity);opacity:.55"></i>1 entité faible</span>
+        <span class="chip"><i style="background:var(--rel)"></i>6 associations</span>
+        <span class="chip"><i style="background:var(--attr)"></i>composé · multivalué · dérivé</span>
+      </div>
+      <div class="hero-cta">
+        <a class="btn" href="#mapping">Commencer le passage ↓</a>
+        <a class="btn ghost" href="#final">Aller au résultat</a>
+      </div>
+    </div>
+    <div class="scene" id="scene" aria-label="Pile 3D des six relations produites par le passage">
+      <div class="iso" id="iso">
+        <div class="slab" style="--i:0;--c:#2F7FE0"><b>WORKS_ON</b></div>
+        <div class="slab" style="--i:1;--c:#6F62E8"><b>DEPT_LOCATIONS</b></div>
+        <div class="slab" style="--i:2;--c:#E2604A"><b>DEPENDENT</b></div>
+        <div class="slab" style="--i:3;--c:#E59A2F"><b>PROJECT</b></div>
+        <div class="slab" style="--i:4;--c:#1F9D8B"><b>DEPARTMENT</b></div>
+        <div class="slab" style="--i:5;--c:#15233B"><b>EMPLOYEE</b></div>
+      </div>
+      <div class="scene-cap">Bougez le pointeur ou faites défiler : les six relations que nous allons construire</div>
+    </div>
+  </div>
+</header>
+
+<!-- ========== NOTATION ========== -->
+<section class="wrap">
+  <div class="sec-head reveal">
+    <span class="eyebrow">Avant de commencer</span>
+    <h2>Lire la notation de Chen</h2>
+    <p>Chaque symbole du diagramme est traité par exactement une étape de l’algorithme. Apprenez d’abord à les lire.</p>
+  </div>
+  <div class="legend reveal">
+    <div class="lg"><svg viewBox="0 0 120 46"><rect style="fill:var(--entity-soft);stroke:var(--entity)" x="10" y="8" width="100" height="30" rx="3" stroke-width="2"/></svg><strong>Type d’entité</strong><span>devient une relation</span></div>
+    <div class="lg"><svg viewBox="0 0 120 46"><rect style="fill:var(--entity-soft);stroke:var(--entity)" x="10" y="8" width="100" height="30" rx="3" stroke-width="2"/><rect style="stroke:var(--entity)" x="15" y="12" width="90" height="22" rx="2" fill="none" stroke-width="1.5"/></svg><strong>Entité faible</strong><span>emprunte la clé de son propriétaire</span></div>
+    <div class="lg"><svg viewBox="0 0 120 46"><polygon style="fill:var(--rel-soft);stroke:var(--rel)" points="60,4 110,23 60,42 10,23" stroke-width="2"/></svg><strong>Association</strong><span>clé étrangère ou nouvelle relation</span></div>
+    <div class="lg"><svg viewBox="0 0 120 46"><ellipse style="fill:var(--surface);stroke:var(--attr)" cx="60" cy="23" rx="46" ry="16" stroke-width="2"/><text style="fill:var(--ink)" x="60" y="27" text-anchor="middle" font-size="12" text-decoration="underline">Ssn</text></svg><strong>Attribut clé</strong><span>souligné → clé primaire</span></div>
+    <div class="lg"><svg viewBox="0 0 120 46"><ellipse style="fill:var(--surface);stroke:var(--attr)" cx="60" cy="23" rx="46" ry="16" stroke-width="2"/><ellipse style="stroke:var(--attr)" cx="60" cy="23" rx="40" ry="11" fill="none" stroke-width="1.5"/></svg><strong>Multivalué</strong><span>double ovale → nouvelle relation</span></div>
+    <div class="lg"><svg viewBox="0 0 120 46"><ellipse style="fill:var(--surface);stroke:var(--attr)" cx="60" cy="23" rx="46" ry="16" stroke-width="2" stroke-dasharray="5 4"/></svg><strong>Dérivé</strong><span>ovale pointillé → non stocké</span></div>
+  </div>
+  <div class="legend reveal" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-top:-40px">
+    <div class="lg"><svg viewBox="0 0 160 46"><line style="stroke:var(--ink)" x1="10" y1="20" x2="150" y2="20" stroke-width="2"/><line style="stroke:var(--ink)" x1="10" y1="26" x2="150" y2="26" stroke-width="2"/></svg><strong>Trait double = participation totale</strong><span>chaque entité doit participer → la clé étrangère devient NOT NULL</span></div>
+    <div class="lg"><svg viewBox="0 0 160 46"><line style="stroke:var(--ink)" x1="10" y1="23" x2="150" y2="23" stroke-width="2"/><text style="fill:var(--pk)" x="20" y="16" font-size="13" font-weight="700">1</text><text style="fill:var(--pk)" x="132" y="16" font-size="13" font-weight="700">N</text></svg><strong>1, N, M = cardinalités</strong><span>décident où va la clé étrangère</span></div>
+    <div class="lg"><svg viewBox="0 0 160 46"><ellipse style="fill:var(--surface);stroke:var(--attr)" cx="80" cy="23" rx="56" ry="16" stroke-width="2"/><text style="fill:var(--ink)" x="80" y="27" text-anchor="middle" font-size="12" text-decoration="underline" style="text-decoration-style:dashed">Name</text></svg><strong>Soulignement pointillé = clé partielle</strong><span>identifie une entité faible au sein de son propriétaire</span></div>
+  </div>
+</section>
+
+<!-- ========== MAPPING ========== -->
+<section class="wrap" id="mapping">
+  <div class="sec-head reveal">
+    <span class="eyebrow">L’algorithme, étape par étape</span>
+    <h2>Sept étapes, appliquées dans l’ordre</h2>
+    <p>Le diagramme à gauche suit votre défilement. Les parties estompées ne servent pas à l’étape en cours ; le schéma en dessous grandit à chaque règle appliquée. Utilisez les flèches ou Lecture pour rejouer la simulation à votre rythme.</p>
+  </div>
+
+  <div class="scrolly">
+    <aside class="stage" id="stage" data-view="erd" aria-label="Simulation du passage">
+      <div class="stage-bar">
+        <div class="now" id="nowLabel"><small>Étape 0</small>Lire le diagramme</div>
+        <div class="tabs" role="tablist" aria-label="Vue">
+          <button role="tab" id="tabErd" aria-selected="true">ERD</button>
+          <button role="tab" id="tabSchema" aria-selected="false">Schéma</button>
+        </div>
+        <button class="btn ghost small" id="prevBtn" aria-label="Étape précédente">◀</button>
+        <button class="btn small" id="playBtn">▶ Lecture</button>
+        <button class="btn ghost small" id="nextBtn" aria-label="Étape suivante">▶</button>
+      </div>
+      <div class="stage-body">
+        <div class="erd-wrap"><svg id="erd" viewBox="0 0 1030 900" role="img" aria-label="Diagramme E/A COMPANY en notation de Chen"></svg></div>
+        <div class="schema" id="schema" aria-live="polite"></div>
+        <div class="key-note"><span><b style="text-decoration:underline">PK</b> clé primaire</span><span><b style="color:var(--fk);font-style:italic">FK →</b> clé étrangère</span><span><b style="box-shadow:inset 0 -2px 0 var(--attr)">UQ</b> clé alternative (UNIQUE)</span></div>
+      </div>
+    </aside>
+
+    <div class="steps" id="steps">
+
+      <article class="step" data-step="0" style="--stepc:var(--muted)">
+        <div class="num"><em>0</em><h3>Faire l’inventaire du diagramme</h3></div>
+        <p>Avant d’appliquer une règle, classez chaque élément. L’algorithme traite d’abord les entités, pour que chaque clé primaire existe avant qu’une clé étrangère en ait besoin.</p>
+        <ul class="applies">
+          <li><span><b>Entités fortes :</b> EMPLOYEE, DEPARTMENT, PROJECT.</span></li>
+          <li><span><b>Entité faible :</b> DEPENDENT (double rectangle), identifiée par DEPENDENTS_OF (double losange).</span></li>
+          <li><span><b>Associations binaires :</b> MANAGES 1:1 · WORKS_FOR 1:N · CONTROLS 1:N · SUPERVISION 1:N réflexive · WORKS_ON M:N.</span></li>
+          <li><span><b>Attributs particuliers :</b> Name est composé, Locations est multivalué, Number_of_employees est dérivé.</span></li>
+        </ul>
+        <div class="warn"><span>DEPARTMENT et PROJECT ont chacune <b>deux</b> attributs soulignés (Name et Number) : les deux sont des clés. Nous en choisirons une comme clé primaire et garderons l’autre UNIQUE.</span></div>
+      </article>
+
+      <article class="step" data-step="1" style="--stepc:var(--entity)">
+        <div class="num"><em>1</em><h3>Traduire les entités fortes</h3></div>
+        <div class="rule"><span class="tag">Règle · Étape 1</span>Pour chaque entité forte E, créez une relation R avec tous les attributs <b>simples</b> de E. Pour un attribut composé, ne gardez que ses composants simples. Choisissez une clé de E comme clé primaire de R.</div>
+        <ul class="applies">
+          <li><span><b>EMPLOYEE :</b> l’attribut composé Name est décomposé en Fname, Minit, Lname ; Ssn est la clé, il devient la clé primaire.</span></li>
+          <li><span><b>DEPARTMENT :</b> Name et Number sont toutes deux des clés. Nous choisissons Number comme clé primaire (courte, stable) et déclarons Name UNIQUE. Les attributs sont renommés Dname, Dnumber pour rester clairs une fois les relations jointes.</span></li>
+          <li><span><b>PROJECT :</b> même raisonnement : Pnumber est la clé primaire, Pname est UNIQUE, Location devient Plocation.</span></li>
+          <li><span><b>Reporté :</b> l’attribut multivalué Locations attend l’étape 6 ; l’attribut dérivé Number_of_employees n’est pas stocké (voir la fin du parcours).</span></li>
+        </ul>
+        <div class="result">EMPLOYEE(Fname, Minit, Lname, <u>Ssn</u>, Bdate, Address, Gender, Salary)
+DEPARTMENT(Dname, <u>Dnumber</u>)          Dname UNIQUE
+PROJECT(Pname, <u>Pnumber</u>, Plocation)   Pname UNIQUE</div>
+        <div class="cons"><span>entité → relation</span><span>composé → composants</span><span>clé → PK</span><span>autre clé → UNIQUE</span></div>
+      </article>
+
+      <article class="step" data-step="2" style="--stepc:var(--pk)">
+        <div class="num"><em>2</em><h3>Traduire l’entité faible</h3></div>
+        <div class="rule"><span class="tag">Règle · Étape 2</span>Pour chaque entité faible W de propriétaire E, créez une relation R avec les attributs simples de W, plus la clé primaire de E comme <b>clé étrangère</b>. La clé primaire de R combine la clé du propriétaire et la clé partielle de W.</div>
+        <ul class="applies">
+          <li><span>Le propriétaire de DEPENDENT est EMPLOYEE (via l’association identifiante DEPENDENTS_OF) : DEPENDENT reçoit donc <code>Essn</code> → EMPLOYEE.Ssn.</span></li>
+          <li><span>La clé partielle Name (soulignée en pointillé) devient <code>Dependent_name</code>.</span></li>
+          <li><span>PK = (Essn, Dependent_name) : deux employés peuvent chacun avoir un ayant droit nommé Alice.</span></li>
+          <li><span>L’association identifiante DEPENDENTS_OF n’a pas besoin de relation propre : la clé étrangère Essn la représente déjà.</span></li>
+        </ul>
+        <div class="result">DEPENDENT(<u><i>Essn</i></u>, <u>Dependent_name</u>, Gender, Birth_date, Relationship)
+  FK Essn → EMPLOYEE(Ssn)  ON DELETE CASCADE</div>
+        <div class="warn"><span>Utilisez ON DELETE CASCADE : un ayant droit ne peut pas exister sans son employé (dépendance d’existence).</span></div>
+      </article>
+
+      <article class="step" data-step="3" style="--stepc:var(--rel)">
+        <div class="num"><em>3</em><h3>Traduire l’association binaire 1:1</h3></div>
+        <div class="rule"><span class="tag">Règle · Étape 3 (approche par clé étrangère)</span>Pour une association 1:1 entre S et T, placez la clé primaire de T comme clé étrangère dans S, en choisissant pour S l’entité à <b>participation totale</b>. Les attributs de l’association vont aussi dans S.</div>
+        <ul class="applies">
+          <li><span>MANAGES relie EMPLOYEE (1) et DEPARTMENT (1). Le trait double est du côté DEPARTMENT : chaque département a un directeur, mais la plupart des employés ne dirigent rien.</span></li>
+          <li><span>DEPARTMENT joue donc le rôle de S : il reçoit <code>Mgr_ssn</code> → EMPLOYEE.Ssn, déclaré NOT NULL (participation totale).</span></li>
+          <li><span>L’attribut d’association Start_date devient <code>Mgr_start_date</code> dans DEPARTMENT.</span></li>
+          <li><span>Mgr_ssn est aussi déclaré UNIQUE, car un employé dirige au plus un département. Sans UNIQUE, l’association devient silencieusement 1:N.</span></li>
+        </ul>
+        <div class="result">DEPARTMENT(Dname, <u>Dnumber</u>, <i>Mgr_ssn</i>, Mgr_start_date)
+  FK Mgr_ssn → EMPLOYEE(Ssn)   NOT NULL, UNIQUE</div>
+        <details class="why"><summary>Pourquoi ne pas mettre la clé étrangère dans EMPLOYEE ?</summary><div><p>Cela fonctionnerait, mais la plupart des employés ne sont pas directeurs : la colonne serait NULL dans presque toutes les lignes. Choisir le côté à participation totale évite ces NULL.</p><p>Les deux autres options de l’étape 3 sont une <b>relation fusionnée</b> (seulement si les deux côtés sont totaux) et une <b>relation de liaison</b> ; aucune ne convient ici.</p></div></details>
+      </article>
+
+      <article class="step" data-step="4" style="--stepc:var(--fk)">
+        <div class="num"><em>4</em><h3>Traduire les associations binaires 1:N</h3></div>
+        <div class="rule"><span class="tag">Règle · Étape 4</span>Pour une association 1:N, repérez la relation S du <b>côté N</b>. Placez la clé primaire de la relation T du côté 1 dans S comme clé étrangère, avec les éventuels attributs de l’association.</div>
+        <ul class="applies">
+          <li><span><b>WORKS_FOR</b> (DEPARTMENT 1 : N EMPLOYEE) : EMPLOYEE reçoit <code>Dno</code> → DEPARTMENT.Dnumber. La participation totale d’EMPLOYEE la rend NOT NULL.</span></li>
+          <li><span><b>CONTROLS</b> (DEPARTMENT 1 : N PROJECT) : PROJECT reçoit <code>Dnum</code> → DEPARTMENT.Dnumber, NOT NULL (tout projet est contrôlé).</span></li>
+          <li><span><b>SUPERVISION</b> est réflexive : le côté supervisé (N) est EMPLOYEE et le côté superviseur (1) aussi. EMPLOYEE reçoit <code>Super_ssn</code> → EMPLOYEE.Ssn, nommée d’après le rôle. Elle peut être NULL : le dirigeant suprême n’a pas de superviseur.</span></li>
+        </ul>
+        <div class="result">EMPLOYEE(Fname, Minit, Lname, <u>Ssn</u>, Bdate, Address, Gender, Salary, <i>Super_ssn</i>, <i>Dno</i>)
+PROJECT(Pname, <u>Pnumber</u>, Plocation, <i>Dnum</i>)</div>
+        <div class="warn"><span>Ne mettez jamais la clé étrangère du côté 1 : DEPARTMENT aurait besoin d’une liste de numéros d’employés, ce qui n’est pas une valeur atomique.</span></div>
+      </article>
+
+      <article class="step" data-step="5" style="--stepc:var(--attr)">
+        <div class="num"><em>5</em><h3>Traduire l’association binaire M:N</h3></div>
+        <div class="rule"><span class="tag">Règle · Étape 5</span>Pour une association M:N, créez une <b>nouvelle relation</b> contenant les clés primaires des deux participants comme clés étrangères. Leur combinaison est la clé primaire. Les attributs de l’association y sont ajoutés.</div>
+        <ul class="applies">
+          <li><span>WORKS_ON relie EMPLOYEE (M) et PROJECT (N) : un employé travaille sur plusieurs projets et un projet a plusieurs employés.</span></li>
+          <li><span>Nouvelle relation WORKS_ON avec <code>Essn</code> → EMPLOYEE.Ssn et <code>Pno</code> → PROJECT.Pnumber ; PK = (Essn, Pno).</span></li>
+          <li><span>L’attribut d’association Hours appartient au couple (employé, projet) : il va donc dans WORKS_ON.</span></li>
+        </ul>
+        <div class="result">WORKS_ON(<u><i>Essn</i></u>, <u><i>Pno</i></u>, Hours)</div>
+        <div class="warn"><span>Une association M:N donne toujours une relation séparée, même sans attribut.</span></div>
+      </article>
+
+      <article class="step" data-step="6" style="--stepc:#C25BB5">
+        <div class="num"><em>6</em><h3>Traduire l’attribut multivalué</h3></div>
+        <div class="rule"><span class="tag">Règle · Étape 6</span>Pour chaque attribut multivalué A d’une entité E, créez une nouvelle relation avec A et la clé primaire de E comme clé étrangère. La clé primaire combine les deux.</div>
+        <ul class="applies">
+          <li><span>Locations (double ovale) appartient à DEPARTMENT : un département peut être situé dans plusieurs villes.</span></li>
+          <li><span>Nouvelle relation DEPT_LOCATIONS avec <code>Dnumber</code> → DEPARTMENT.Dnumber et <code>Dlocation</code> ; PK = (Dnumber, Dlocation).</span></li>
+        </ul>
+        <div class="result">DEPT_LOCATIONS(<u><i>Dnumber</i></u>, <u>Dlocation</u>)
+  ex. (5, Bellaire) (5, Sugarland) (5, Houston)</div>
+        <div class="warn"><span>Garder Locations dans DEPARTMENT (« Bellaire, Sugarland, Houston ») violerait l’atomicité (1FN).</span></div>
+      </article>
+
+      <article class="step" data-step="7" style="--stepc:var(--muted)">
+        <div class="num"><em>7</em><h3>Traduire les associations n-aires</h3></div>
+        <div class="rule"><span class="tag">Règle · Étape 7</span>Pour chaque association à plus de deux participants, créez une nouvelle relation avec les clés primaires de tous les participants comme clés étrangères (plus les attributs de l’association). Sa clé primaire est en général la combinaison de ces clés étrangères.</div>
+        <ul class="applies">
+          <li><span>Toutes les associations du diagramme COMPANY sont binaires : l’étape 7 n’ajoute donc rien ici.</span></li>
+          <li><span>On la vérifie quand même : sauter une étape en connaissance de cause fait partie de l’application correcte de l’algorithme.</span></li>
+        </ul>
+        <div class="result">— aucune nouvelle relation —</div>
+      </article>
+
+      <article class="step" data-step="8" style="--stepc:var(--attr)">
+        <div class="num"><em>✓</em><h3>Traiter l’attribut dérivé</h3></div>
+        <div class="rule"><span class="tag">Règle · Attributs dérivés</span>Un attribut dérivé n’est pas stocké : il est calculé à partir d’autres données quand on en a besoin, en général par une requête ou une vue.</div>
+        <ul class="applies">
+          <li><span>Number_of_employees (ovale pointillé) se calcule en comptant les tuples EMPLOYEE de chaque département, grâce à la clé étrangère Dno.</span></li>
+          <li><span>Le stocker créerait une valeur fausse après chaque embauche ou départ, sauf mise à jour automatique.</span></li>
+        </ul>
+        <div class="result">CREATE VIEW DEPT_SIZE AS
+SELECT Dno AS Dnumber, COUNT(*) AS Number_of_employees
+FROM EMPLOYEE GROUP BY Dno;</div>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- ========== FINAL ========== -->
+<section class="band" id="final">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">Résultat</span>
+      <h2>Le schéma relationnel complet</h2>
+      <p>Cliquez sur une clé étrangère (en bleu) ou une ligne du tableau pour voir quelle clé primaire elle référence.</p>
+    </div>
+    <div class="stats reveal">
+      <div class="stat"><b>6</b><span>relations</span></div>
+      <div class="stat"><b>8</b><span>clés étrangères</span></div>
+      <div class="stat"><b>3</b><span>clés primaires composées</span></div>
+      <div class="stat"><b>2</b><span>clés alternatives (UNIQUE)</span></div>
+    </div>
+    <div class="final-grid">
+      <div class="card reveal"><div class="final-schema scroll-x" id="finalSchema"></div></div>
+      <div class="card reveal scroll-x">
+        <table class="fk-table" id="fkTable">
+          <thead><tr><th>Clé étrangère</th><th>Référence</th><th>Étape</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card reveal" style="margin-top:22px">
+      <h3 style="font-size:22px;margin-bottom:8px">Ce que les clés étrangères ne peuvent pas imposer</h3>
+      <p style="color:var(--muted)">Certaines contraintes de participation du diagramme n’ont pas d’équivalent dans le schéma. Il faut les imposer par des triggers, des assertions ou l’application :</p>
+      <ul class="applies" style="--stepc:var(--rel)">
+        <li><span>Chaque DEPARTMENT a au moins un employé (participation totale de DEPARTMENT dans WORKS_FOR).</span></li>
+        <li><span>Chaque EMPLOYEE travaille sur au moins un projet, et chaque PROJECT a au moins un employé (participation totale des deux côtés de WORKS_ON).</span></li>
+      </ul>
+      <p style="color:var(--muted);margin-top:10px">La participation totale du côté qui porte la clé étrangère (1:N ou 1:1) est traduite par NOT NULL (Dno, Dnum, Mgr_ssn) ; la participation totale du côté 1 ou dans une association M:N ne l’est pas.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ========== SIMULATOR ========== -->
+<section class="band" id="sim" style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">Simulation</span>
+      <h2>Insérez un employé et observez les contraintes</h2>
+      <p>Le schéma que vous venez de construire protège les données. Essayez un INSERT dans EMPLOYEE : le SGBD vérifie tour à tour le domaine, la clé, l’intégrité d’entité et les deux clés étrangères. Partez d’un scénario ou saisissez vos propres valeurs.</p>
+    </div>
+    <div class="sim">
+      <div class="card reveal">
+        <div class="presets" aria-label="Scénarios">
+          <button class="btn ghost small" data-preset="ok" type="button">Insertion valide</button>
+          <button class="btn ghost small" data-preset="key" type="button">Ssn en double</button>
+          <button class="btn ghost small" data-preset="null" type="button">Ssn manquant</button>
+          <button class="btn ghost small" data-preset="dept" type="button">Département inconnu</button>
+          <button class="btn ghost small" data-preset="sup" type="button">Superviseur inconnu</button>
+          <button class="btn ghost small" data-preset="dno" type="button">Sans département</button>
+        </div>
+        <form id="insForm" style="margin-top:14px" novalidate>
+          <div class="field"><label for="fSsn">Ssn</label><input id="fSsn" autocomplete="off" inputmode="numeric"><small>Clé primaire · 9 chiffres</small></div>
+          <div class="field"><label for="fName">Lname</label><input id="fName" autocomplete="off"></div>
+          <div class="field"><label for="fSup">Super_ssn</label><input id="fSup" autocomplete="off" inputmode="numeric"><small>Clé étrangère → EMPLOYEE.Ssn · peut être vide (NULL)</small></div>
+          <div class="field"><label for="fDno">Dno</label><input id="fDno" autocomplete="off" inputmode="numeric"><small>Clé étrangère → DEPARTMENT.Dnumber · NOT NULL</small></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn" type="submit" id="runBtn">Exécuter l’INSERT</button>
+            <button class="btn ghost" type="button" id="resetBtn">Réinitialiser les données</button>
+          </div>
+        </form>
+        <div class="checks" id="checks"></div>
+        <div class="verdict" id="verdict" aria-live="polite"></div>
+      </div>
+      <div class="card reveal scroll-x">
+        <div class="tbl-cap">DEPARTMENT (données d’exemple)</div>
+        <table class="data" id="tDept"></table>
+        <div class="tbl-cap" style="margin-top:16px">EMPLOYEE (données d’exemple, quelques colonnes)</div>
+        <table class="data" id="tEmp"></table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== SQL ========== -->
+<section class="band" id="sql" style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">Implémentation</span>
+      <h2>Le schéma en SQL</h2>
+      <p>EMPLOYEE référence DEPARTMENT (Dno) et DEPARTMENT référence EMPLOYEE (Mgr_ssn) : c’est un cycle. On crée d’abord les tables, puis on ajoute la clé étrangère restante avec ALTER TABLE.</p>
+    </div>
+    <div class="sql reveal">
+      <button class="btn ghost small copy" id="copySql" type="button">Copier le SQL</button>
+<pre id="sqlCode"><span class="kw">CREATE TABLE</span> EMPLOYEE (
+  Fname      <span class="ty">VARCHAR(15)</span>  <span class="kw">NOT NULL</span>,
+  Minit      <span class="ty">CHAR(1)</span>,
+  Lname      <span class="ty">VARCHAR(15)</span>  <span class="kw">NOT NULL</span>,
+  Ssn        <span class="ty">CHAR(9)</span>      <span class="kw">PRIMARY KEY</span>,             <span class="cm">-- étape 1</span>
+  Bdate      <span class="ty">DATE</span>,
+  Address    <span class="ty">VARCHAR(50)</span>,
+  Gender     <span class="ty">CHAR(1)</span>,
+  Salary     <span class="ty">DECIMAL(10,2)</span> <span class="kw">CHECK</span> (Salary &gt;= 0),
+  Super_ssn  <span class="ty">CHAR(9)</span>,                            <span class="cm">-- étape 4, SUPERVISION (peut être NULL)</span>
+  Dno        <span class="ty">INT</span>          <span class="kw">NOT NULL</span>,                <span class="cm">-- étape 4, WORKS_FOR (totale)</span>
+  <span class="kw">FOREIGN KEY</span> (Super_ssn) <span class="kw">REFERENCES</span> EMPLOYEE(Ssn)
+);
+
+<span class="kw">CREATE TABLE</span> DEPARTMENT (
+  Dname          <span class="ty">VARCHAR(25)</span> <span class="kw">NOT NULL UNIQUE</span>,       <span class="cm">-- clé alternative</span>
+  Dnumber        <span class="ty">INT</span>         <span class="kw">PRIMARY KEY</span>,
+  Mgr_ssn        <span class="ty">CHAR(9)</span>     <span class="kw">NOT NULL UNIQUE</span>,       <span class="cm">-- étape 3, MANAGES (1:1, totale)</span>
+  Mgr_start_date <span class="ty">DATE</span>,
+  <span class="kw">FOREIGN KEY</span> (Mgr_ssn) <span class="kw">REFERENCES</span> EMPLOYEE(Ssn)
+);
+
+<span class="kw">ALTER TABLE</span> EMPLOYEE <span class="kw">ADD FOREIGN KEY</span> (Dno) <span class="kw">REFERENCES</span> DEPARTMENT(Dnumber);
+
+<span class="kw">CREATE TABLE</span> DEPT_LOCATIONS (                      <span class="cm">-- étape 6</span>
+  Dnumber   <span class="ty">INT</span>,
+  Dlocation <span class="ty">VARCHAR(15)</span>,
+  <span class="kw">PRIMARY KEY</span> (Dnumber, Dlocation),
+  <span class="kw">FOREIGN KEY</span> (Dnumber) <span class="kw">REFERENCES</span> DEPARTMENT(Dnumber) <span class="kw">ON DELETE CASCADE</span>
+);
+
+<span class="kw">CREATE TABLE</span> PROJECT (
+  Pname     <span class="ty">VARCHAR(25)</span> <span class="kw">NOT NULL UNIQUE</span>,
+  Pnumber   <span class="ty">INT</span>         <span class="kw">PRIMARY KEY</span>,
+  Plocation <span class="ty">VARCHAR(15)</span>,
+  Dnum      <span class="ty">INT</span>         <span class="kw">NOT NULL</span>,                <span class="cm">-- étape 4, CONTROLS (totale)</span>
+  <span class="kw">FOREIGN KEY</span> (Dnum) <span class="kw">REFERENCES</span> DEPARTMENT(Dnumber)
+);
+
+<span class="kw">CREATE TABLE</span> WORKS_ON (                            <span class="cm">-- étape 5</span>
+  Essn  <span class="ty">CHAR(9)</span>,
+  Pno   <span class="ty">INT</span>,
+  Hours <span class="ty">DECIMAL(3,1)</span>,
+  <span class="kw">PRIMARY KEY</span> (Essn, Pno),
+  <span class="kw">FOREIGN KEY</span> (Essn) <span class="kw">REFERENCES</span> EMPLOYEE(Ssn),
+  <span class="kw">FOREIGN KEY</span> (Pno)  <span class="kw">REFERENCES</span> PROJECT(Pnumber)
+);
+
+<span class="kw">CREATE TABLE</span> DEPENDENT (                           <span class="cm">-- étape 2</span>
+  Essn           <span class="ty">CHAR(9)</span>,
+  Dependent_name <span class="ty">VARCHAR(15)</span>,
+  Gender         <span class="ty">CHAR(1)</span>,
+  Birth_date     <span class="ty">DATE</span>,
+  Relationship   <span class="ty">VARCHAR(8)</span>,
+  <span class="kw">PRIMARY KEY</span> (Essn, Dependent_name),
+  <span class="kw">FOREIGN KEY</span> (Essn) <span class="kw">REFERENCES</span> EMPLOYEE(Ssn) <span class="kw">ON DELETE CASCADE</span>
+);</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ========== QUIZ ========== -->
+<section class="band" id="quiz" style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">Auto-évaluation</span>
+      <h2>Cinq questions avant de quitter le TP</h2>
+    </div>
+    <div class="quiz" id="quizBox"></div>
+  </div>
+</section>
+
+<footer class="wrap">TP de passage E/A de la base COMPANY · Bases de données relationnelles · Chapitre 3</footer>
+</main>
+
+<script>
+(function(){
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------------- ERD (Chen notation) ---------------- */
+  const N = {
+    EMP:{t:'E',x:246,y:270,w:143,h:35,l:'EMPLOYEE',s:[0,1,2,3,4,5]},
+    DEP:{t:'E',x:885,y:270,w:180,h:35,l:'DEPARTMENT',s:[0,1,3,4,6,8]},
+    PRJ:{t:'E',x:884,y:496,w:177,h:33,l:'PROJECT',s:[0,1,4,5]},
+    DPT:{t:'W',x:485,y:775,w:190,h:40,l:'DEPENDENT',s:[0,2]},
+    WF:{t:'R',x:570,y:170,w:200,h:120,l:'WORKS_FOR',s:[0,4]},
+    MG:{t:'R',x:570,y:366,w:200,h:120,l:'MANAGES',s:[0,3]},
+    CT:{t:'R',x:884,y:378,w:180,h:106,l:'CONTROLS',s:[0,4]},
+    WO:{t:'R',x:625,y:496,w:200,h:120,l:'WORKS_ON',s:[0,5]},
+    SU:{t:'R',x:240,y:568,w:200,h:124,l:'SUPERVISION',s:[0,4]},
+    DO:{t:'IR',x:485,y:625,w:300,h:165,l:'DEPENDENTS_OF',s:[0,2]},
+    Fn:{t:'A',x:75,y:28,w:108,l:'Fname',s:[0,1]}, Mi:{t:'A',x:185,y:28,w:100,l:'Minit',s:[0,1]}, Ln:{t:'A',x:296,y:28,w:108,l:'Lname',s:[0,1]},
+    Bd:{t:'A',x:75,y:84,w:108,l:'Bdate',s:[0,1]}, Nm:{t:'A',x:186,y:84,w:104,l:'Name',s:[0,1],comp:1}, Ad:{t:'A',x:297,y:84,w:116,l:'Address',s:[0,1]},
+    Sa:{t:'A',x:409,y:84,w:106,l:'Salary',s:[0,1]}, Ss:{t:'A',x:65,y:137,w:90,l:'Ssn',key:1,s:[0,1]}, Ge:{t:'A',x:408,y:138,w:96,l:'gender',s:[0,1]},
+    Lo:{t:'A',x:884,y:140,w:154,l:'Locations',multi:1,s:[0,6]}, Dn:{t:'A',x:810,y:196,w:104,l:'Name',key:1,s:[0,1]}, Dnu:{t:'A',x:961,y:196,w:110,l:'Number',key:1,s:[0,1]},
+    Ne:{t:'A',x:640,y:270,w:238,l:'Number_of_employees',der:1,s:[0,8]},
+    Sd:{t:'A',x:430,y:270,w:116,l:'Start_date',s:[0,3]}, Ho:{t:'A',x:740,y:432,w:104,l:'Hours',s:[0,5]},
+    Pn:{t:'A',x:742,y:562,w:112,l:'Name',key:1,s:[0,1]}, Pnu:{t:'A',x:733,y:617,w:148,l:'Number',key:1,s:[0,1]}, Pl:{t:'A',x:868,y:598,w:106,l:'Location',s:[0,1]},
+    Dna:{t:'A',x:262,y:858,w:90,l:'Name',key:1,partial:1,s:[0,2]}, Dge:{t:'A',x:380,y:858,w:92,l:'gender',s:[0,2]}, Dbd:{t:'A',x:508,y:858,w:132,l:'Birth_date',s:[0,2]}, Drl:{t:'A',x:685,y:858,w:166,l:'Relationship',s:[0,2]},
+  };
+  // edges: [from, to, opts]  opts: p1/p2 explicit points, total, s
+  const E = [
+    ['Fn','Nm'],['Mi','Nm'],['Ln','Nm'],['Nm','EMP'],['Bd','EMP'],['Ad','EMP'],['Sa','EMP'],['Ss','EMP'],['Ge','EMP'],
+    ['Lo','DEP'],['Dn','DEP'],['Dnu','DEP'],['Ne','DEP'],
+    ['Pn','PRJ'],['Pnu','PRJ'],['Pl','PRJ'],
+    ['Dna','DPT'],['Dge','DPT'],['Dbd','DPT'],['Drl','DPT'],
+    ['EMP','WF',{p1:[300,253],p2:[470,170],total:1}],['WF','DEP',{p1:[670,170],p2:[825,253],total:1}],
+    ['EMP','MG',{p1:[318,282],p2:[470,366]}],['MG','DEP',{p1:[670,366],p2:[850,288],total:1}],['Sd','MG',{p2:[525,340]}],
+    ['DEP','CT',{p1:[884,288],p2:[884,325]}],['CT','PRJ',{p1:[884,431],p2:[884,480],total:1}],
+    ['EMP','WO',{p1:[305,288],p2:[525,496],total:1}],['WO','PRJ',{p1:[725,496],p2:[796,496],total:1}],['Ho','WO',{p2:[680,466]}],
+    ['EMP','SU',{p1:[205,288],p2:[140,568]}],['EMP','SU',{p1:[285,288],p2:[340,568]}],
+    ['EMP','DO',{p1:[298,288],p2:[485,543]}],['DO','DPT',{p1:[485,708],p2:[485,755],total:1}],
+  ];
+  const LBL = [
+    ['N',462,157,'WF'],['1',676,155,'WF'],['1',472,352,'MG'],['1',662,347,'MG'],['1',900,322,'CT'],['N',904,446,'CT'],
+    ['M',533,474,'WO'],['N',728,474,'WO'],['1',497,521,'DO'],['N',507,736,'DO'],['1',123,570,'SU'],['N',362,570,'SU'],
+    ['Supervisor',96,515,'SU',1],['Supervisee',390,515,'SU',1],
+  ];
+  const svgNS='http://www.w3.org/2000/svg', erd=document.getElementById('erd');
+  const mk=(tag,attrs,parent)=>{const el=document.createElementNS(svgNS,tag);for(const k in attrs){if(k==='fill'||k==='stroke')el.style[k]=attrs[k];else el.setAttribute(k,attrs[k]);}(parent||erd).appendChild(el);return el;};
+  const gE=mk('g',{}), gN=mk('g',{}), gL=mk('g',{});
+  const stepsOf={};
+  E.forEach(([a,b,o={}])=>{
+    const A=N[a],B=N[b];
+    const rel = A.t==='R'||A.t==='IR' ? A : (B.t==='R'||B.t==='IR' ? B : null);
+    const attrNode = A.t==='A'?A:(B.t==='A'?B:null);
+    const s = (rel||attrNode||A).s;
+    const g=mk('g',{class:'e','data-s':s.join(' ')},gE);
+    const p1=o.p1||[A.x,A.y], p2=o.p2||[B.x,B.y];
+    if(o.total){
+      const dx=p2[0]-p1[0],dy=p2[1]-p1[1],L=Math.hypot(dx,dy),nx=-dy/L*2.6,ny=dx/L*2.6;
+      [[1],[-1]].forEach(([k])=>mk('line',{x1:p1[0]+nx*k,y1:p1[1]+ny*k,x2:p2[0]+nx*k,y2:p2[1]+ny*k,stroke:'var(--ink)','stroke-width':1.5},g));
+    } else mk('line',{x1:p1[0],y1:p1[1],x2:p2[0],y2:p2[1],stroke:'var(--ink)','stroke-width':1.5},g);
+  });
+  for(const id in N){
+    const n=N[id], g=mk('g',{class:'n','data-s':n.s.join(' '),'data-id':id},gN);
+    if(n.t==='E'||n.t==='W'){
+      g.style.setProperty('--hl','var(--entity)');
+      mk('rect',{x:n.x-n.w/2,y:n.y-n.h/2,width:n.w,height:n.h,fill:'var(--entity-soft)',stroke:'var(--entity)','stroke-width':2},g);
+      if(n.t==='W') mk('rect',{x:n.x-n.w/2+5,y:n.y-n.h/2+5,width:n.w-10,height:n.h-10,fill:'none',stroke:'var(--entity)','stroke-width':1.5},g);
+      const t=mk('text',{x:n.x,y:n.y+6,'text-anchor':'middle','font-size':17,'font-weight':700},g); t.textContent=n.l;
+    } else if(n.t==='R'||n.t==='IR'){
+      g.style.setProperty('--hl','var(--rel)');
+      const pts=(w,h)=>`${n.x},${n.y-h/2} ${n.x+w/2},${n.y} ${n.x},${n.y+h/2} ${n.x-w/2},${n.y}`;
+      mk('polygon',{points:pts(n.w,n.h),fill:'var(--rel-soft)',stroke:'var(--rel)','stroke-width':2},g);
+      if(n.t==='IR') mk('polygon',{points:pts(n.w-34,n.h-22),fill:'none',stroke:'var(--rel)','stroke-width':1.5},g);
+      const t=mk('text',{x:n.x,y:n.y+6,'text-anchor':'middle','font-size':16,'font-weight':600},g); t.textContent=n.l;
+    } else {
+      g.style.setProperty('--hl','var(--attr)');
+      const rx=n.w/2, ry=21;
+      const e=mk('ellipse',{cx:n.x,cy:n.y,rx,ry,fill:'var(--surface)',stroke:'var(--attr)','stroke-width':1.8},g);
+      if(n.der) e.setAttribute('stroke-dasharray','6 5');
+      if(n.multi) mk('ellipse',{cx:n.x,cy:n.y,rx:rx-6,ry:ry-5,fill:'none',stroke:'var(--attr)','stroke-width':1.4},g);
+      const t=mk('text',{x:n.x,y:n.y+6,'text-anchor':'middle','font-size':16},g); t.textContent=n.l;
+      if(n.key){
+        const w=n.l.length*8.2, ul=mk('line',{x1:n.x-w/2,y1:n.y+9,x2:n.x+w/2,y2:n.y+9,stroke:'var(--ink)','stroke-width':1.3},g);
+        if(n.partial) ul.setAttribute('stroke-dasharray','4 3');
+      }
+    }
+  }
+  LBL.forEach(([txt,x,y,r,role])=>{
+    const g=mk('g',{class:'e','data-s':N[r].s.join(' ')},gL);
+    const t=mk('text',{x,y,'text-anchor':'middle','font-size':role?15:16,'font-weight':role?500:700,fill:role?'var(--muted)':'var(--pk)'},g);
+    if(!role) t.style.fill='var(--pk)'; else t.style.fill='var(--muted)';
+    t.textContent=txt;
+  });
+
+  /* ---------------- schema model ---------------- */
+  // attribute: [name, flags, stepAdded]  flags: p=PK f=FK u=UNIQUE
+  const REL=[
+    {n:'EMPLOYEE',at:1,a:[['Fname','',1],['Minit','',1],['Lname','',1],['Ssn','p',1],['Bdate','',1],['Address','',1],['Gender','',1],['Salary','',1],['Super_ssn','f',4],['Dno','f',4]]},
+    {n:'DEPARTMENT',at:1,a:[['Dname','u',1],['Dnumber','p',1],['Mgr_ssn','fu',3],['Mgr_start_date','',3]]},
+    {n:'PROJECT',at:1,a:[['Pname','u',1],['Pnumber','p',1],['Plocation','',1],['Dnum','f',4]]},
+    {n:'DEPENDENT',at:2,a:[['Essn','pf',2],['Dependent_name','p',2],['Gender','',2],['Birth_date','',2],['Relationship','',2]]},
+    {n:'WORKS_ON',at:5,a:[['Essn','pf',5],['Pno','pf',5],['Hours','',5]]},
+    {n:'DEPT_LOCATIONS',at:6,a:[['Dnumber','pf',6],['Dlocation','p',6]]},
+  ];
+  const FK=[
+    ['EMPLOYEE.Super_ssn','EMPLOYEE.Ssn','4 · SUPERVISION (1:N réflexive)'],
+    ['EMPLOYEE.Dno','DEPARTMENT.Dnumber','4 · WORKS_FOR (1:N)'],
+    ['DEPARTMENT.Mgr_ssn','EMPLOYEE.Ssn','3 · MANAGES (1:1)'],
+    ['PROJECT.Dnum','DEPARTMENT.Dnumber','4 · CONTROLS (1:N)'],
+    ['DEPENDENT.Essn','EMPLOYEE.Ssn','2 · propriétaire de l’entité faible'],
+    ['WORKS_ON.Essn','EMPLOYEE.Ssn','5 · WORKS_ON (M:N)'],
+    ['WORKS_ON.Pno','PROJECT.Pnumber','5 · WORKS_ON (M:N)'],
+    ['DEPT_LOCATIONS.Dnumber','DEPARTMENT.Dnumber','6 · Locations multivalué'],
+  ];
+  const fkTarget={}; FK.forEach(([a,b])=>fkTarget[a]=b);
+  const cellHTML=(rel,[nm,f,st],isNew)=>{
+    const c=['cell']; if(f.includes('p'))c.push('pk'); if(f.includes('f'))c.push('fk'); if(f.includes('u'))c.push('uq'); if(isNew)c.push('new');
+    const tgt=fkTarget[rel+'.'+nm]; const title=tgt?` title="Clé étrangère → ${tgt}"`:(f.includes('u')?' title="UNIQUE (clé alternative)"':'');
+    return `<span class="${c.join(' ')}" data-ref="${rel}.${nm}"${title}>${nm}</span>`;
+  };
+  const schemaEl=document.getElementById('schema');
+  let shown=-1;
+  function renderSchema(step,prev){
+    const rels=REL.filter(r=>r.at<=step);
+    if(!rels.length){schemaEl.innerHTML='<p class="empty">Le schéma est vide. Les relations apparaissent ici à mesure que les règles sont appliquées.</p>';return;}
+    schemaEl.innerHTML=rels.map(r=>{
+      const isNewRel=r.at>prev&&r.at<=step;
+      const cells=r.a.filter(x=>x[2]<=step).map(x=>cellHTML(r.n,x,x[2]>prev&&x[2]<=step)).join('');
+      return `<div class="rel${isNewRel?' new':''}"><div class="rn">${r.n}</div><div class="cells">${cells}</div></div>`;
+    }).join('');
+    schemaEl.querySelectorAll('.cell.new').forEach((c,i)=>c.style.animationDelay=(i*70)+'ms');
+  }
+
+  /* ---------------- stage control ---------------- */
+  const TITLES=['Lire le diagramme','Entités fortes','Entité faible','Association 1:1','Associations 1:N','Association M:N','Attribut multivalué','Associations n-aires','Attribut dérivé'];
+  const nowLabel=document.getElementById('nowLabel');
+  const stepEls=[...document.querySelectorAll('.step')];
+  let cur=-1;
+  function setStep(k){
+    k=Math.max(0,Math.min(8,k)); if(k===cur) return;
+    const prev=cur<0?-1:cur;
+    cur=k;
+    erd.classList.toggle('focus',k!==0);
+    erd.querySelectorAll('.n,.e').forEach(el=>{
+      const s=el.getAttribute('data-s').split(' ').map(Number);
+      el.classList.toggle('on', k===0 ? true : s.includes(k));
+    });
+    if(k===7) erd.classList.add('focus');
+    renderSchema(Math.min(k,7), k<prev ? Math.min(k,7) : Math.min(prev,7));
+    nowLabel.innerHTML=`<small>${k===8?'Vérification finale':'Étape '+k}</small>${TITLES[k]}`;
+    stepEls.forEach(s=>s.classList.toggle('active',+s.dataset.step===k));
+  }
+  setStep(0);
+
+  // scroll-driven
+  const io=new IntersectionObserver(es=>{
+    if(playing) return;
+    const vis=es.filter(e=>e.isIntersecting).sort((a,b)=>a.boundingClientRect.top-b.boundingClientRect.top);
+    if(vis.length) setStep(+vis[0].target.dataset.step);
+  },{rootMargin:'-35% 0px -45% 0px'});
+  stepEls.forEach(s=>io.observe(s));
+
+  let playing=false, timer=null;
+  const playBtn=document.getElementById('playBtn');
+  function stopPlay(){playing=false;clearInterval(timer);playBtn.textContent='▶ Lecture';}
+  playBtn.onclick=()=>{
+    if(playing){stopPlay();return;}
+    playing=true; playBtn.textContent='❚❚ Pause';
+    if(cur>=8) { cur=-1; setStep(0); }
+    timer=setInterval(()=>{ if(cur>=8){stopPlay();return;} setStep(cur+1); }, reduce?1600:2200);
+  };
+  document.getElementById('nextBtn').onclick=()=>{stopPlay();setStep(cur+1);};
+  document.getElementById('prevBtn').onclick=()=>{stopPlay();const t=cur-1;cur=99;setStep(t);};
+
+  // tabs (mobile)
+  const stage=document.getElementById('stage'), tE=document.getElementById('tabErd'), tS=document.getElementById('tabSchema');
+  const setView=v=>{stage.dataset.view=v;tE.setAttribute('aria-selected',v==='erd');tS.setAttribute('aria-selected',v==='schema');};
+  tE.onclick=()=>setView('erd'); tS.onclick=()=>setView('schema');
+
+  /* ---------------- final schema + FK linking ---------------- */
+  const fs=document.getElementById('finalSchema');
+  fs.innerHTML=REL.map(r=>`<div class="rel"><div class="rn">${r.n}</div><div class="cells">${r.a.map(x=>cellHTML(r.n,x,false)).join('')}</div></div>`).join('');
+  const tb=document.querySelector('#fkTable tbody');
+  tb.innerHTML=FK.map(([a,b,s])=>`<tr data-a="${a}" data-b="${b}" tabindex="0"><td>${a}</td><td>${b}</td><td>${s}</td></tr>`).join('');
+  function light(a,b){
+    fs.querySelectorAll('.lit').forEach(x=>x.classList.remove('lit'));
+    tb.querySelectorAll('tr').forEach(r=>r.classList.toggle('lit',r.dataset.a===a));
+    if(!a) return;
+    fs.querySelectorAll(`[data-ref="${a}"],[data-ref="${b}"]`).forEach(x=>x.classList.add('lit'));
+  }
+  fs.addEventListener('click',e=>{const c=e.target.closest('.cell.fk'); if(c){const a=c.dataset.ref; light(a,fkTarget[a]);}});
+  tb.addEventListener('click',e=>{const r=e.target.closest('tr'); if(r) light(r.dataset.a,r.dataset.b);});
+  tb.addEventListener('keydown',e=>{if(e.key==='Enter'){const r=e.target.closest('tr'); if(r) light(r.dataset.a,r.dataset.b);}});
+  light(FK[1][0],FK[1][1]);
+
+  /* ---------------- integrity simulator ---------------- */
+  const DEPT0=[[1,'Headquarters','888665555'],[4,'Administration','987654321'],[5,'Research','333445555']];
+  const EMP0=[['888665555','Borg','',1],['333445555','Wong','888665555',5],['987654321','Wallace','888665555',4],['123456789','Smith','333445555',5],['999887777','Zelaya','987654321',4]];
+  let EMP=EMP0.map(r=>r.slice()), added=null;
+  const tDept=document.getElementById('tDept'), tEmp=document.getElementById('tEmp');
+  tDept.innerHTML='<tr><th><u>Dnumber</u></th><th>Dname</th><th>Mgr_ssn</th></tr>'+DEPT0.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('');
+  function drawEmp(){
+    tEmp.innerHTML='<tr><th><u>Ssn</u></th><th>Lname</th><th>Super_ssn</th><th>Dno</th></tr>'+EMP.map(r=>`<tr${r===added?' class="added"':''}><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]||'NULL'}</td><td>${r[3]===''?'NULL':r[3]}</td></tr>`).join('');
+  }
+  drawEmp();
+  const PRE={
+    ok:['677678989','Vargas','987654321','4'], key:['333445555','Lee','888665555','5'], null:['','Lee','888665555','5'],
+    dept:['677678989','Vargas','987654321','7'], sup:['677678989','Vargas','111111111','4'], dno:['677678989','Vargas','987654321','']
+  };
+  const $=id=>document.getElementById(id); const F={s:$('fSsn'),n:$('fName'),u:$('fSup'),d:$('fDno')};
+  document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{const p=PRE[b.dataset.preset];F.s.value=p[0];F.n.value=p[1];F.u.value=p[2];F.d.value=p[3];run();});
+  const checksEl=document.getElementById('checks'), verdict=document.getElementById('verdict');
+  const CHECKS=[
+    ['Intégrité d’entité','Ssn (la clé primaire) ne doit pas être NULL.'],
+    ['Domaine','Ssn et Super_ssn ont 9 chiffres ; Dno est un entier.'],
+    ['Contrainte de clé','Aucun autre employé n’a déjà ce Ssn.'],
+    ['NOT NULL sur Dno','Participation totale à WORKS_FOR : chaque employé a un département.'],
+    ['Référentielle : Dno','Dno doit exister dans DEPARTMENT.Dnumber.'],
+    ['Référentielle : Super_ssn','Super_ssn est NULL ou existe dans EMPLOYEE.Ssn.'],
+  ];
+  function evaluate(s,u,d){
+    const r=[];
+    r.push(s!=='' ? [1] : [0,'Ssn est NULL : une valeur de clé primaire est obligatoire.']);
+    const dig=/^\d{9}$/;
+    r.push((s===''||dig.test(s))&&(u===''||dig.test(u))&&(d===''||/^\d+$/.test(d)) ? [1] : [0,'Une valeur sort de son domaine (Ssn et Super_ssn exigent exactement 9 chiffres, Dno un entier).']);
+    r.push(!EMP.some(e=>e[0]===s) ? [1] : [0,`Le Ssn ${s} existe déjà : clé primaire en double.`]);
+    r.push(d!=='' ? [1] : [0,'Dno est NULL alors que la colonne est NOT NULL (participation totale).']);
+    r.push(d===''||DEPT0.some(x=>String(x[0])===d) ? [1] : [0,`Il n’existe pas de département ${d} : référence pendante.`]);
+    r.push(u===''||EMP.some(e=>e[0]===u) ? [1] : [0,`Il n’existe pas d’employé ${u} pour être superviseur.`]);
+    return r;
+  }
+  let running=false;
+  async function run(){
+    if(running) return; running=true;
+    const s=F.s.value.trim(), n=F.n.value.trim()||'Doe', u=F.u.value.trim(), d=F.d.value.trim();
+    checksEl.innerHTML=CHECKS.map(([t,x],i)=>`<div class="check" id="ck${i}"><span class="dot">${i+1}</span><div><strong>${t}</strong><span>${x}</span></div></div>`).join('');
+    verdict.className='verdict'; verdict.textContent=`INSERT INTO EMPLOYEE (Ssn, Lname, Super_ssn, Dno) VALUES (${s?`'${s}'`:'NULL'}, '${n}', ${u?`'${u}'`:'NULL'}, ${d||'NULL'}) …`;
+    const res=evaluate(s,u,d);
+    for(let i=0;i<res.length;i++){
+      const el=document.getElementById('ck'+i); el.classList.add('run');
+      await new Promise(r=>setTimeout(r,reduce?60:420));
+      el.classList.remove('run');
+      if(res[i][0]){el.classList.add('pass');el.querySelector('.dot').textContent='✓';}
+      else{el.classList.add('fail');el.querySelector('.dot').textContent='✗';el.querySelector('span:last-child').textContent=res[i][1];
+        verdict.className='verdict no'; verdict.textContent='Rejeté. Le SGBD refuse l’INSERT et la table reste inchangée.'; running=false; return;}
+    }
+    added=[s,n,u,d]; EMP.push(added); drawEmp();
+    verdict.className='verdict ok'; verdict.textContent=`Accepté. L’employé ${s} est maintenant dans EMPLOYEE (surligné).`;
+    running=false;
+  }
+  document.getElementById('insForm').addEventListener('submit',e=>{e.preventDefault();run();});
+  document.getElementById('resetBtn').onclick=()=>{EMP=EMP0.map(r=>r.slice());added=null;drawEmp();checksEl.innerHTML='';verdict.className='verdict';verdict.textContent='Données d’exemple restaurées.';};
+  F.s.value='677678989';F.n.value='Vargas';F.u.value='987654321';F.d.value='4';
+  verdict.textContent='Choisissez un scénario ou modifiez les valeurs, puis exécutez l’INSERT.';
+
+  /* ---------------- quiz ---------------- */
+  const Q=[
+    ['Pourquoi Mgr_ssn va-t-il dans DEPARTMENT plutôt que dans EMPLOYEE ?',['DEPARTMENT participe totalement à MANAGES, la clé étrangère n’y est donc jamais NULL','Parce qu’EMPLOYEE a déjà trop d’attributs','Parce que la règle 1:1 place toujours la clé étrangère dans l’entité de droite'],0,'L’étape 3 choisit le côté à participation totale : chaque département a un directeur.'],
+    ['Quelle est la clé primaire de DEPENDENT ?',['Dependent_name','(Essn, Dependent_name)','Essn'],1,'Entité faible : clé du propriétaire + clé partielle (étape 2).'],
+    ['Où est stocké l’attribut Hours de WORKS_ON ?',['Dans EMPLOYEE','Dans PROJECT','Dans la nouvelle relation WORKS_ON'],2,'Hours décrit un couple (employé, projet) : il vit dans la relation M:N (étape 5).'],
+    ['Pourquoi Super_ssn peut-il être NULL mais pas Dno ?',['SUPERVISION est partielle (le dirigeant suprême n’a pas de superviseur), WORKS_FOR est totale pour EMPLOYEE','Super_ssn n’est pas une clé étrangère','Dno fait partie de la clé primaire'],0,'Trait simple ou trait double dans le diagramme : la participation décide du NOT NULL.'],
+    ['Combien de relations le diagramme COMPANY produit-il, et pourquoi pas 10 ?',['6 : les associations 1:1 et 1:N deviennent des clés étrangères, pas des relations','10 : une par entité et par association','4 : une par entité'],0,'Seuls WORKS_ON (M:N) et l’attribut multivalué Locations ajoutent des relations aux quatre entités.'],
+  ];
+  const qb=document.getElementById('quizBox');
+  qb.innerHTML=Q.map((q,i)=>`<div class="q reveal"><h4>${i+1}. ${q[0]}</h4><div class="opts">${q[1].map((o,j)=>`<button class="opt" type="button" data-q="${i}" data-o="${j}">${o}</button>`).join('')}</div><p class="fb" id="fb${i}"></p></div>`).join('');
+  qb.addEventListener('click',e=>{
+    const b=e.target.closest('.opt'); if(!b) return;
+    const i=+b.dataset.q, j=+b.dataset.o, q=Q[i];
+    b.parentElement.querySelectorAll('.opt').forEach((x,k)=>{x.classList.remove('right','wrong'); if(k===q[2]&&k===j) x.classList.add('right');});
+    if(j!==q[2]) b.classList.add('wrong');
+    document.getElementById('fb'+i).textContent=(j===q[2]?'Exact. ':'Pas tout à fait. ')+q[3];
+  });
+
+  /* ---------------- copy SQL ---------------- */
+  document.getElementById('copySql').onclick=async e=>{
+    const txt=document.getElementById('sqlCode').innerText;
+    try{await navigator.clipboard.writeText(txt);e.target.textContent='Copié';}
+    catch(_){const r=document.createRange();r.selectNodeContents(document.getElementById('sqlCode'));const s=getSelection();s.removeAllRanges();s.addRange(r);e.target.textContent='Sélectionné, faites Ctrl+C';}
+    setTimeout(()=>e.target.textContent='Copier le SQL',2200);
+  };
+
+  /* ---------------- scroll effects: progress, parallax, 3D, reveal ---------------- */
+  const prog=document.getElementById('prog'), iso=document.getElementById('iso'), blobs=[...document.querySelectorAll('.ambient span')];
+  let px=0,py=0;
+  function onScroll(){
+    const h=document.documentElement, max=h.scrollHeight-h.clientHeight, y=h.scrollTop||document.body.scrollTop;
+    prog.style.setProperty('--p', max>0?y/max:0);
+    if(reduce) return;
+    blobs.forEach((b,i)=>b.style.transform=`translate3d(${(i-1)*y*0.04}px, ${y*(0.12+i*0.06)*-1}px, 0)`);
+    const t=Math.min(1,y/500);
+    iso.style.setProperty('--gap', (26+t*34)+'px');
+    iso.style.setProperty('--rz', (px*12 + t*-18)+'deg');
+    iso.style.setProperty('--rx', (py*-8 + t*-10)+'deg');
+  }
+  addEventListener('scroll',onScroll,{passive:true}); onScroll();
+  if(!reduce){
+    document.getElementById('scene').addEventListener('pointermove',e=>{
+      const r=e.currentTarget.getBoundingClientRect(); px=(e.clientX-r.left)/r.width-.5; py=(e.clientY-r.top)/r.height-.5; onScroll();
+    });
+    // reveal: only elements that start below the fold animate in; everything is visible at rest
+    const vh=innerHeight;
+    const rv=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting){e.target.classList.add('in'); rv.unobserve(e.target);} }),{rootMargin:'0px 0px -8% 0px'});
+    document.querySelectorAll('.reveal').forEach(el=>{ if(el.getBoundingClientRect().top>vh) rv.observe(el); });
+  }
+})();
+</script>
+
+</body></html>
